@@ -1,24 +1,17 @@
+#include "config.h"
 #include "Button.h"
+#include "menu.h"
 
 /* ************************************************************************** */
 /*                                GLOBAL & CONSTANTS                          */
 /* ************************************************************************** */
-// PIN CONSTANTS
-#define START_BUTTON_PIN		0
-#define DOWN_BUTTON_PIN			1
-#define UP_BUTTON_PIN			2
-#define DIFFICULTY_5_LED_PIN	13
-#define DIFFICULTY_4_LED_PIN	12
-#define DIFFICULTY_3_LED_PIN	11
-#define DIFFICULTY_2_LED_PIN	10
-#define DIFFICULTY_1_LED_PIN	9
-
-// PROGRAM CONSTANTS
-#define DIFFICULTY_MAX			5
+// OBJ_NBR and pin/difficulty constants are defined in config.h
 
 
 // Global variables
 int _difficulty = 2;
+int obj_list[OBJ_NBR];
+
 
 unsigned long T1 = 0, T2 = 0;
 uint8_t TimeInterval = 5; // 5ms
@@ -32,6 +25,14 @@ Button downButton(DOWN_BUTTON_PIN);
 Button startButton(START_BUTTON_PIN);
 
 void setup() {
+  // RANDOM SEED
+  randomSeed(analogRead(0));
+
+  // Variable initialization
+  for (int i = 0; i < OBJ_NBR; i++)
+    obj_list[i] = i + 1; // Fill with values 1 to OBJ_NBR
+
+
   // INPUTS
   upButton.begin();
   downButton.begin();
@@ -50,67 +51,51 @@ void setup() {
 /* ************************************************************************** */
 
 void loop() {
-  // T2 = millis();
-  // if( (T2-T1) >= TimeInterval) // Every 5ms
-  // {
-  //   // Read The Electromagnet Enable Button State
-  //   //if (debounce()) {
-  //   //  digitalWrite(EM_PIN, !digitalRead(EM_PIN)); // Toggle (Enable/Disable)
-  //   //}
-  //   
-  //   // Difficulty increase
-  //   if (debounce(UP_BUTTON_PIN)) {
-  //     _difficulty++;
-  //     if (_difficulty > 5) {
-  //       _difficulty = 5;
-  //     }
-  //   }
-  //   // Difficulty decrease
-  //   //if (debounce(DOWN_BUTTON_PIN)) {
-  //   //  _difficulty--;
-  //   //  if (_difficulty < 1) {
-  //   //    _difficulty = 1;
-  //   //  }
-  //   //}
-  //   show_difficulty();
-  //   T1 = millis();
-  // }
-  if (upButton.isPressed()) {
-    _difficulty++;
-    if (_difficulty > DIFFICULTY_MAX) {
-      _difficulty = DIFFICULTY_MAX;
-    }
-  }
-  if (downButton.isPressed()) {
-    _difficulty--;
-    if (_difficulty < 1) {
-      _difficulty = 1;
-    }
-  }
-  show_difficulty();
-}
+  // 1. Setup initial state
+  init_game();
 
-/* ************************************************************************** */
-/*                                 MAIN LOOP                                  */
-/* ************************************************************************** */
+  // 2. Show menu and allow difficulty selection
+  menu_loop();
 
-void	show_difficulty(void) {
-  int counter = 0;
-  while (counter < DIFFICULTY_MAX) {
-    digitalWrite(DIFFICULTY_1_LED_PIN + counter, counter < _difficulty);
-  	counter++;
-  }
+  // 3. Switch off menu LED
+  for (int i = 0; i < DIFFICULTY_MAX; i++)
+    digitalWrite(DIFFICULTY_1_LED_PIN + i, LOW);
+
+  delay(1000); // Small delay to avoid bouncing issues when starting the game
+
+  // 4. Game loop
 }
 
 /* ************************************************************************** */
 /*                              CUSTOM FUNCTIONS                              */
 /* ************************************************************************** */
 
-void  game_loop() {
 
+void  init_game() {
+  // Initialize game state, reset variables, etc.
+  for (int i = 0; i < OBJ_NBR; i++)
+    obj_list[i] = i + 1; // Reset the object list to default values
+  shuffleList(obj_list, OBJ_NBR); // Shuffle the list for a new game
+
+  _difficulty = 2; // Reset difficulty to default
 }
 
+void  game_loop() {
+  int obj_index = 0;
 
+  // 1. Shuffle the list of objects
+  shuffleList(obj_list, OBJ_NBR);
+
+  // 2. Display the objects in a random order (e.g., using LEDs or a screen)
+  while (obj_index < _difficulty) {
+    // Display obj_list[obj_index] (e.g., light up corresponding LED)
+    // For demonstration, we'll just print it to the Serial Monitor
+    Serial.print("Object: ");
+    Serial.println(obj_list[obj_index]);
+    delay(1000); // Wait for a moment before showing the next object
+    obj_index++;
+  }
+}
 
 bool debounce(int pin)
 {
@@ -119,3 +104,16 @@ bool debounce(int pin)
   return (btnState == 0xFFF0);
 }
 
+// 4. CUSTOM FUNCTION
+void shuffleList(int arrayToShuffle[], int size) {
+  // Loop backward through the array
+  for (int i = size - 1; i > 0; i--) {
+    // Pick a random index from 0 to i
+    int j = random(0, i + 1); 
+    
+    // Swap the elements
+    int temp = arrayToShuffle[i];
+    arrayToShuffle[i] = arrayToShuffle[j];
+    arrayToShuffle[j] = temp;
+  }
+}
