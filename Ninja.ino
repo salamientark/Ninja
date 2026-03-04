@@ -9,8 +9,9 @@
 
 
 // Global variables
-int _difficulty = 2;
-int obj_list[OBJ_NBR];
+int   _difficulty = 2;
+int   obj_list[OBJ_NBR];
+byte  EXTENDED_REGISTER = 0x00000000; // This variable will hold the state of the additional outputs controlled by the 74HC595
 
 
 unsigned long T1 = 0, T2 = 0;
@@ -28,11 +29,6 @@ void setup() {
   // RANDOM SEED
   randomSeed(analogRead(0));
 
-  // Variable initialization
-  for (int i = 0; i < OBJ_NBR; i++)
-    obj_list[i] = i + 1; // Fill with values 1 to OBJ_NBR
-
-
   // INPUTS
   upButton.begin();
   downButton.begin();
@@ -44,6 +40,30 @@ void setup() {
   pinMode(DIFFICULTY_3_LED_PIN, OUTPUT);
   pinMode(DIFFICULTY_2_LED_PIN, OUTPUT);
   pinMode(DIFFICULTY_1_LED_PIN, OUTPUT);
+
+  pinMode(DATA_LOCK_PIN, OUTPUT);
+  pinMode(DATA_SHIFT_PIN, OUTPUT);
+  pinMode(DATA_PIN, OUTPUT);
+  pinMode(DATA_OUTPUT_PIN, OUTPUT);
+
+  // Variables initialization
+  for (int i = 0; i < OBJ_NBR; i++)
+    obj_list[i] = i + 1; // Fill with values 1 to OBJ_NBR
+                         //
+  // 74HC595 OUTPUTS
+  digitalWrite(DATA_LOCK_PIN, LOW);
+  digitalWrite(DATA_SHIFT_PIN, LOW);
+  digitalWrite(DATA_PIN, LOW);
+  outputEnable();
+
+  extendedDigitalWrite(MAGNET_1_PIN, HIGH);
+  extendedDigitalWrite(MAGNET_2_PIN, HIGH);
+  extendedDigitalWrite(MAGNET_3_PIN, HIGH);
+  extendedDigitalWrite(MAGNET_4_PIN, HIGH);
+  extendedDigitalWrite(MAGNET_5_PIN, HIGH);
+  extendedDigitalWrite(MAGNET_6_PIN, HIGH);
+  extendedDigitalWrite(MAGNET_7_PIN, HIGH);
+  digitalWrite(DATA_LOCK_PIN, LOW); // Ensure the latch pin is low at the start
 }
 
 /* ************************************************************************** */
@@ -78,6 +98,9 @@ void  init_game() {
   shuffleList(obj_list, OBJ_NBR); // Shuffle the list for a new game
 
   _difficulty = 2; // Reset difficulty to default
+
+  // Activate magnet
+
 }
 
 void  game_loop() {
@@ -116,4 +139,40 @@ void shuffleList(int arrayToShuffle[], int size) {
     arrayToShuffle[i] = arrayToShuffle[j];
     arrayToShuffle[j] = temp;
   }
+}
+
+void extendedDigitalWrite(byte additionalOutputPin, bool newState) {
+
+  // Mise à 1 ou 0 du bit (numéro de sortie) visé
+  bitWrite(EXTENDED_REGISTER, additionalOutputPin, newState);
+
+  // Et mise à jour des sorties du 74HC595
+  sendByteToRegister(EXTENDED_REGISTER);
+  
+}
+
+
+void outputEnable() {
+  digitalWrite(DATA_OUTPUT_PIN, LOW);  // OE is active LOW
+}
+
+void outputDisable() {
+  digitalWrite(DATA_OUTPUT_PIN, HIGH);
+}
+
+// ==================================
+// Fonction : sendByteToRegister
+// ==================================
+void sendByteToRegister(byte byteToSend) {
+
+  // Mise au niveau bas de la ligne de verrouillage (car ensuite, un front montant sur celle-ci induira un "transfert + verrouillage" des données en sortie)
+  digitalWrite(DATA_LOCK_PIN, LOW);
+
+  // Envoi des données
+  shiftOut(DATA_PIN, DATA_SHIFT_PIN, MSBFIRST, byteToSend);
+
+  // Mise au niveau haut de la ligne de verrouillage, pour générer un front montant sur cette ligne,
+  // et ainsi, enclencher un "transfert + verrouillage" des données en sortie du 74HC595
+  digitalWrite(DATA_LOCK_PIN, HIGH);
+
 }
