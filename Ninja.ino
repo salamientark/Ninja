@@ -26,6 +26,10 @@ Button downButton(DOWN_BUTTON_PIN);
 Button startButton(START_BUTTON_PIN);
 
 void setup() {
+  // SERIAL
+  Serial.begin(9600);
+  Serial.println("=== Ninja Game Starting ===");
+
   // RANDOM SEED
   randomSeed(analogRead(0));
 
@@ -98,6 +102,7 @@ void  init_game() {
   shuffleList(obj_list, OBJ_NBR); // Shuffle the list for a new game
 
   _difficulty = 2; // Reset difficulty to default
+  Serial.println("--- New game initialized ---");
 
   // Activate magnet
 

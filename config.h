@@ -1,7 +1,7 @@
 #pragma once
 
 // PIN CONSTANTS
-#define DOWN_BUTTON_PIN       1
+#define DOWN_BUTTON_PIN       4
 #define UP_BUTTON_PIN         2
 #define START_BUTTON_PIN      3
 #define DIFFICULTY_5_LED_PIN  13
