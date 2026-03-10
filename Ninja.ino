@@ -39,16 +39,16 @@ void setup() {
   startButton.begin();
 
   // OUTPUTS
+  pinMode(DATA_LOCK_PIN, OUTPUT);
+  pinMode(DATA_SHIFT_PIN, OUTPUT);
+  pinMode(DATA_PIN, OUTPUT);
+  pinMode(DATA_OUTPUT_PIN, OUTPUT);
+
   pinMode(DIFFICULTY_5_LED_PIN, OUTPUT);
   pinMode(DIFFICULTY_4_LED_PIN, OUTPUT);
   pinMode(DIFFICULTY_3_LED_PIN, OUTPUT);
   pinMode(DIFFICULTY_2_LED_PIN, OUTPUT);
   pinMode(DIFFICULTY_1_LED_PIN, OUTPUT);
-
-  pinMode(DATA_LOCK_PIN, OUTPUT);
-  pinMode(DATA_SHIFT_PIN, OUTPUT);
-  pinMode(DATA_PIN, OUTPUT);
-  pinMode(DATA_OUTPUT_PIN, OUTPUT);
 
   // Variables initialization
   for (int i = 0; i < OBJ_NBR; i++)
@@ -88,6 +88,7 @@ void loop() {
   delay(1000); // Small delay to avoid bouncing issues when starting the game
 
   // 4. Game loop
+  extendedPinSequence();
 }
 
 /* ************************************************************************** */
@@ -105,7 +106,8 @@ void  init_game() {
   Serial.println("--- New game initialized ---");
 
   // Activate magnet
-
+  EXTENDED_REGISTER = 0b11111111; // Reset extended register state
+  setMagnets(); // Update magnet states based on the extended register
 }
 
 void  game_loop() {
@@ -146,6 +148,25 @@ void shuffleList(int arrayToShuffle[], int size) {
   }
 }
 
+void extendedPinSequence() {
+  Serial.println("Sequence: pin1 ON");
+  extendedDigitalWrite(EXT_PIN_1, HIGH);
+  delay(1000);
+  extendedDigitalWrite(EXT_PIN_1, LOW);
+
+  Serial.println("Sequence: pin2 ON");
+  extendedDigitalWrite(EXT_PIN_2, HIGH);
+  delay(1000);
+  extendedDigitalWrite(EXT_PIN_2, LOW);
+
+  Serial.println("Sequence: pin3 ON");
+  extendedDigitalWrite(EXT_PIN_3, HIGH);
+  delay(1000);
+  extendedDigitalWrite(EXT_PIN_3, LOW);
+
+  Serial.println("Sequence: done");
+}
+
 void extendedDigitalWrite(byte additionalOutputPin, bool newState) {
 
   // Mise à 1 ou 0 du bit (numéro de sortie) visé
@@ -155,6 +176,18 @@ void extendedDigitalWrite(byte additionalOutputPin, bool newState) {
   sendByteToRegister(EXTENDED_REGISTER);
   
 }
+
+void  setMagnets() {
+  extendedDigitalWrite(EXT_PIN_1, EXTENDED_REGISTER & (1 << MAGNET_1_PIN));
+  extendedDigitalWrite(EXT_PIN_2, EXTENDED_REGISTER & (1 << MAGNET_2_PIN));
+  extendedDigitalWrite(EXT_PIN_3, EXTENDED_REGISTER & (1 << MAGNET_3_PIN));
+  extendedDigitalWrite(EXT_PIN_4, EXTENDED_REGISTER & (1 << MAGNET_4_PIN));
+  extendedDigitalWrite(EXT_PIN_5, EXTENDED_REGISTER & (1 << MAGNET_5_PIN));
+  extendedDigitalWrite(EXT_PIN_6, EXTENDED_REGISTER & (1 << MAGNET_6_PIN));
+  extendedDigitalWrite(EXT_PIN_7, EXTENDED_REGISTER & (1 << MAGNET_7_PIN));
+  extendedDigitalWrite(EXT_PIN_8, EXTENDED_REGISTER & (1 << MAGNET_8_PIN));
+}
+
 
 
 void outputEnable() {
