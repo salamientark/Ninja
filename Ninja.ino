@@ -11,7 +11,8 @@
 // Global variables
 int   _difficulty = 2;
 int   obj_list[OBJ_NBR];
-byte  EXTENDED_REGISTER = 0x00000000; // This variable will hold the state of the additional outputs controlled by the 74HC595
+byte  MAGNET_REGISTER     = 0b00000000;  // Chip 1: electromagnet outputs
+byte  MAGNET_LED_REGISTER = 0b00000000;  // Chip 2: magnet indicator LEDs
 
 
 unsigned long T1 = 0, T2 = 0;
@@ -60,13 +61,13 @@ void setup() {
   digitalWrite(DATA_SHIFT_PIN, LOW);
   digitalWrite(DATA_PIN, LOW);
 
-  extendedDigitalWrite(MAGNET_1_PIN, HIGH);
-  extendedDigitalWrite(MAGNET_2_PIN, HIGH);
-  extendedDigitalWrite(MAGNET_3_PIN, HIGH);
-  extendedDigitalWrite(MAGNET_4_PIN, HIGH);
-  extendedDigitalWrite(MAGNET_5_PIN, HIGH);
-  extendedDigitalWrite(MAGNET_6_PIN, HIGH);
-  extendedDigitalWrite(MAGNET_7_PIN, HIGH);
+  magnetWrite(MAGNET_1_PIN, HIGH);
+  magnetWrite(MAGNET_2_PIN, HIGH);
+  magnetWrite(MAGNET_3_PIN, HIGH);
+  magnetWrite(MAGNET_4_PIN, HIGH);
+  magnetWrite(MAGNET_5_PIN, HIGH);
+  magnetWrite(MAGNET_6_PIN, HIGH);
+  magnetWrite(MAGNET_7_PIN, HIGH);
   outputEnable(); // Data is latched, now enable outputs
 }
 
@@ -106,9 +107,10 @@ void  init_game() {
   _difficulty = 2; // Reset difficulty to default
   Serial.println("--- New game initialized ---");
 
-  // Activate magnet
-  EXTENDED_REGISTER = 0b11111111; // Reset extended register state
-  setMagnets(); // Update magnet states based on the extended register
+  // Activate magnets
+  MAGNET_REGISTER = 0b11111111; // All magnets on
+  MAGNET_LED_REGISTER = 0b11111111; // All LEDs on
+  sendRegisters();
 }
 
 void  game_loop() {
@@ -124,6 +126,7 @@ void  game_loop() {
     Serial.print("Object: ");
     Serial.println(obj_list[obj_index]);
     offMagnet(obj_list[obj_index] - 1); // Turn off the magnet corresponding to the displayed object (assuming obj_list values are 1-indexed)
+    offMagnetLED(obj_list[obj_index] - 1); // Turn off the corresponding LED
     delay(1000); // Wait for a moment before showing the next object
     obj_index++;
   }
@@ -152,47 +155,41 @@ void shuffleList(int arrayToShuffle[], int size) {
 
 void extendedPinSequence() {
   Serial.println("Sequence: pin1 ON");
-  extendedDigitalWrite(EXT_PIN_1, HIGH);
+  magnetWrite(MAGNET_1_PIN, HIGH);
   delay(1000);
-  extendedDigitalWrite(EXT_PIN_1, LOW);
+  magnetWrite(MAGNET_1_PIN, LOW);
 
   Serial.println("Sequence: pin2 ON");
-  extendedDigitalWrite(EXT_PIN_2, HIGH);
+  magnetWrite(MAGNET_2_PIN, HIGH);
   delay(1000);
-  extendedDigitalWrite(EXT_PIN_2, LOW);
+  magnetWrite(MAGNET_2_PIN, LOW);
 
   Serial.println("Sequence: pin3 ON");
-  extendedDigitalWrite(EXT_PIN_3, HIGH);
+  magnetWrite(MAGNET_3_PIN, HIGH);
   delay(1000);
-  extendedDigitalWrite(EXT_PIN_3, LOW);
+  magnetWrite(MAGNET_3_PIN, LOW);
 
   Serial.println("Sequence: done");
 }
 
-void extendedDigitalWrite(byte additionalOutputPin, bool newState) {
-
-  // Mise à 1 ou 0 du bit (numéro de sortie) visé
-  bitWrite(EXTENDED_REGISTER, additionalOutputPin, newState);
-
-  // Et mise à jour des sorties du 74HC595
-  sendByteToRegister(EXTENDED_REGISTER);
-  
+void magnetWrite(byte pin, bool state) {
+  bitWrite(MAGNET_REGISTER, pin, state);
+  sendRegisters();
 }
 
-void  setMagnets() {
-  extendedDigitalWrite(EXT_PIN_1, EXTENDED_REGISTER & (1 << MAGNET_1_PIN));
-  extendedDigitalWrite(EXT_PIN_2, EXTENDED_REGISTER & (1 << MAGNET_2_PIN));
-  extendedDigitalWrite(EXT_PIN_3, EXTENDED_REGISTER & (1 << MAGNET_3_PIN));
-  extendedDigitalWrite(EXT_PIN_4, EXTENDED_REGISTER & (1 << MAGNET_4_PIN));
-  extendedDigitalWrite(EXT_PIN_5, EXTENDED_REGISTER & (1 << MAGNET_5_PIN));
-  extendedDigitalWrite(EXT_PIN_6, EXTENDED_REGISTER & (1 << MAGNET_6_PIN));
-  extendedDigitalWrite(EXT_PIN_7, EXTENDED_REGISTER & (1 << MAGNET_7_PIN));
-  extendedDigitalWrite(EXT_PIN_8, EXTENDED_REGISTER & (1 << MAGNET_8_PIN));
+void magnetLedWrite(byte pin, bool state) {
+  bitWrite(MAGNET_LED_REGISTER, pin, state);
+  sendRegisters();
 }
 
 void  offMagnet(byte magnetPin) {
-  bitClear(EXTENDED_REGISTER, magnetPin);
-  setMagnets();
+  bitClear(MAGNET_REGISTER, magnetPin);
+  sendRegisters();
+}
+
+void  offMagnetLED(byte magnetLEDPin) {
+  bitClear(MAGNET_LED_REGISTER, magnetLEDPin);
+  sendRegisters();
 }
 
 
@@ -205,18 +202,14 @@ void outputDisable() {
 }
 
 // ==================================
-// Fonction : sendByteToRegister
+// Fonction : sendRegisters
+// Sends both chip registers in one latch cycle.
+// Chip 2 (LED) is shifted first so it cascades through chip 1's Q7'.
+// Chip 1 (magnets) is shifted second and stays in chip 1.
 // ==================================
-void sendByteToRegister(byte byteToSend) {
-
-  // Mise au niveau bas de la ligne de verrouillage (car ensuite, un front montant sur celle-ci induira un "transfert + verrouillage" des données en sortie)
+void sendRegisters() {
   digitalWrite(DATA_LOCK_PIN, LOW);
-
-  // Envoi des données
-  shiftOut(DATA_PIN, DATA_SHIFT_PIN, MSBFIRST, byteToSend);
-
-  // Mise au niveau haut de la ligne de verrouillage, pour générer un front montant sur cette ligne,
-  // et ainsi, enclencher un "transfert + verrouillage" des données en sortie du 74HC595
-  digitalWrite(DATA_LOCK_PIN, HIGH);
-
+  shiftOut(DATA_PIN, DATA_SHIFT_PIN, MSBFIRST, MAGNET_LED_REGISTER);  // Chip 2 (cascaded)
+  shiftOut(DATA_PIN, DATA_SHIFT_PIN, MSBFIRST, MAGNET_REGISTER);      // Chip 1
+  digitalWrite(DATA_LOCK_PIN, HIGH);  // Single latch — both chips update simultaneously
 }

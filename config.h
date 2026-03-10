@@ -35,6 +35,16 @@
 #define MAGNET_7_PIN          6
 #define MAGNET_8_PIN          7
 
+// Chip 2 — magnet indicator LEDs (Q0–Q7)
+#define MAGNET_LED_1_PIN      0
+#define MAGNET_LED_2_PIN      1
+#define MAGNET_LED_3_PIN      2
+#define MAGNET_LED_4_PIN      3
+#define MAGNET_LED_5_PIN      4
+#define MAGNET_LED_6_PIN      5
+#define MAGNET_LED_7_PIN      6
+#define MAGNET_LED_8_PIN      7
+
 // PROGRAM CONSTANTS
 #define DIFFICULTY_MAX        5
 #define OBJ_NBR               8
