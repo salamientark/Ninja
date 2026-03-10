@@ -51,10 +51,10 @@ void setup() {
     obj_list[i] = i + 1; // Fill with values 1 to OBJ_NBR
                          //
   // 74HC595 OUTPUTS
+  outputDisable(); // Keep outputs disabled until data is ready
   digitalWrite(DATA_LOCK_PIN, LOW);
   digitalWrite(DATA_SHIFT_PIN, LOW);
   digitalWrite(DATA_PIN, LOW);
-  outputEnable();
 
   extendedDigitalWrite(MAGNET_1_PIN, HIGH);
   extendedDigitalWrite(MAGNET_2_PIN, HIGH);
@@ -63,7 +63,7 @@ void setup() {
   extendedDigitalWrite(MAGNET_5_PIN, HIGH);
   extendedDigitalWrite(MAGNET_6_PIN, HIGH);
   extendedDigitalWrite(MAGNET_7_PIN, HIGH);
-  digitalWrite(DATA_LOCK_PIN, LOW); // Ensure the latch pin is low at the start
+  outputEnable(); // Data is latched, now enable outputs
 }
 
 /* ************************************************************************** */
