@@ -37,4 +37,4 @@
 
 // PROGRAM CONSTANTS
 #define DIFFICULTY_MAX        5
-#define OBJ_NBR               7
+#define OBJ_NBR               8

@@ -88,7 +88,8 @@ void loop() {
   delay(1000); // Small delay to avoid bouncing issues when starting the game
 
   // 4. Game loop
-  extendedPinSequence();
+  game_loop();
+  // extendedPinSequence();
 }
 
 /* ************************************************************************** */
@@ -100,7 +101,7 @@ void  init_game() {
   // Initialize game state, reset variables, etc.
   for (int i = 0; i < OBJ_NBR; i++)
     obj_list[i] = i + 1; // Reset the object list to default values
-  shuffleList(obj_list, OBJ_NBR); // Shuffle the list for a new game
+  // shuffleList(obj_list, OBJ_NBR); // Shuffle the list for a new game
 
   _difficulty = 2; // Reset difficulty to default
   Serial.println("--- New game initialized ---");
@@ -117,11 +118,12 @@ void  game_loop() {
   shuffleList(obj_list, OBJ_NBR);
 
   // 2. Display the objects in a random order (e.g., using LEDs or a screen)
-  while (obj_index < _difficulty) {
+  while (obj_index < OBJ_NBR) {
     // Display obj_list[obj_index] (e.g., light up corresponding LED)
     // For demonstration, we'll just print it to the Serial Monitor
     Serial.print("Object: ");
     Serial.println(obj_list[obj_index]);
+    offMagnet(obj_list[obj_index] - 1); // Turn off the magnet corresponding to the displayed object (assuming obj_list values are 1-indexed)
     delay(1000); // Wait for a moment before showing the next object
     obj_index++;
   }
@@ -188,6 +190,10 @@ void  setMagnets() {
   extendedDigitalWrite(EXT_PIN_8, EXTENDED_REGISTER & (1 << MAGNET_8_PIN));
 }
 
+void  offMagnet(byte magnetPin) {
+  bitClear(EXTENDED_REGISTER, magnetPin);
+  setMagnets();
+}
 
 
 void outputEnable() {
