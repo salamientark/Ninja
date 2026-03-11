@@ -7,6 +7,8 @@ int DROP_TIME;
 int TWO_DROP_MIN;
 int TWO_DROP_MAX;
 int TWO_DROP_CURRENT;
+bool RANDOM_LEDS_ENABLED = false;
+int  FAKE_LED_ON_TIME     = 0;
 
 void shuffleList(int arrayToShuffle[], int size) {
   // Loop backward through the array
@@ -22,6 +24,7 @@ void shuffleList(int arrayToShuffle[], int size) {
 }
 
 void  setup_game_loop() {
+  RANDOM_LEDS_ENABLED = false;
   /* Initial setup | difficulty_1 */
   switch (_difficulty) {
     case 1:
@@ -72,6 +75,8 @@ void  setup_game_loop() {
       DROP_TIME = 1000;
       TWO_DROP_MIN = 2;
       TWO_DROP_MAX = 3;
+      RANDOM_LEDS_ENABLED = true;
+      FAKE_LED_ON_TIME    = 300;
       break;
     case 8:
       DELAY_BETWEEN_DROPS = 400;
@@ -92,9 +97,24 @@ void  setup_game_loop() {
   TWO_DROP_CURRENT = random(TWO_DROP_MIN, TWO_DROP_MAX + 1);
 }
 
+void showRandomFakeLeds() {
+  int count = random(0, 3);  // 0, 1, or 2
+  for (int i = 0; i < count; i++) {
+    magnetLedWrite(random(0, OBJ_NBR), 1);
+  }
+  sendRegisters();
+  if (count > 0) {
+    delay(FAKE_LED_ON_TIME);
+    MAGNET_LED_REGISTER = 0b00000000;
+    sendRegisters();
+  }
+}
+
 void oneDrop(int obj) {
-  magnetLedWrite(obj, 1);
-  delay(MAGNET_LED_ON_TIME);
+  if (MAGNET_LED_ON_TIME > 0) {
+    magnetLedWrite(obj, 1);
+    delay(MAGNET_LED_ON_TIME);
+  }
   offMagnet(obj);
   delay(DROP_TIME);
   offMagnetLED(obj);
@@ -102,9 +122,11 @@ void oneDrop(int obj) {
 }
 
 void twoDrop(int obj1, int obj2) {
-  magnetLedWrite(obj1, 1);
-  magnetLedWrite(obj2, 1);
-  delay(MAGNET_LED_ON_TIME);
+  if (MAGNET_LED_ON_TIME > 0) {
+    magnetLedWrite(obj1, 1);
+    magnetLedWrite(obj2, 1);
+    delay(MAGNET_LED_ON_TIME);
+  }
   offMagnet(obj1);
   offMagnet(obj2);
   delay(DROP_TIME);
@@ -130,11 +152,16 @@ void  game_loop() {
   while (obj_index < OBJ_NBR) {
     bool doTwoDrop = (TWO_DROP_CURRENT > 0) && (obj_index + 1 < OBJ_NBR) && (random(0, 2) == 0);
 
+    // Difficulty 7 and above: Random fake LEDs before the actual drop
+    if (RANDOM_LEDS_ENABLED)
+      showRandomFakeLeds();
+
     if (doTwoDrop) {
       twoDrop(obj_list[obj_index] - 1, obj_list[obj_index + 1] - 1);
       obj_index += 2;
       TWO_DROP_CURRENT--;
-    } else {
+    }
+    else {
       oneDrop(obj_list[obj_index] - 1);
       obj_index++;
     }
