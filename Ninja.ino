@@ -11,8 +11,9 @@
 // Global variables
 int   _difficulty = 2;
 int   obj_list[OBJ_NBR];
-byte  MAGNET_REGISTER     = 0b00000000;  // Chip 1: electromagnet outputs
-byte  MAGNET_LED_REGISTER = 0b00000000;  // Chip 2: magnet indicator LEDs
+byte  MENU_LED_REGISTER   = 0b00000000;  // Chip 1: menu/difficulty LEDs
+byte  MAGNET_REGISTER     = 0b00000000;  // Chip 2: electromagnet outputs
+byte  MAGNET_LED_REGISTER = 0b00000000;  // Chip 3: magnet indicator LEDs
 
 
 unsigned long T1 = 0, T2 = 0;
@@ -45,12 +46,6 @@ void setup() {
   pinMode(DATA_PIN, OUTPUT);
   pinMode(DATA_OUTPUT_PIN, OUTPUT);
 
-  pinMode(DIFFICULTY_5_LED_PIN, OUTPUT);
-  pinMode(DIFFICULTY_4_LED_PIN, OUTPUT);
-  pinMode(DIFFICULTY_3_LED_PIN, OUTPUT);
-  pinMode(DIFFICULTY_2_LED_PIN, OUTPUT);
-  pinMode(DIFFICULTY_1_LED_PIN, OUTPUT);
-
   // Variables initialization
   for (int i = 0; i < OBJ_NBR; i++)
     obj_list[i] = i + 1; // Fill with values 1 to OBJ_NBR
@@ -82,9 +77,9 @@ void loop() {
   // 2. Show menu and allow difficulty selection
   menu_loop();
 
-  // 3. Switch off menu LED
-  for (int i = 0; i < DIFFICULTY_MAX; i++)
-    digitalWrite(DIFFICULTY_1_LED_PIN + i, LOW);
+  // 3. Switch off menu LEDs
+  MENU_LED_REGISTER = 0b00000000;
+  sendRegisters();
 
   delay(1000); // Small delay to avoid bouncing issues when starting the game
 
@@ -172,6 +167,16 @@ void extendedPinSequence() {
   Serial.println("Sequence: done");
 }
 
+void menuLedWrite(byte pin, bool state) {
+  bitWrite(MENU_LED_REGISTER, pin, state);
+  sendRegisters();
+}
+
+void offMenuLed(byte pin) {
+  bitClear(MENU_LED_REGISTER, pin);
+  sendRegisters();
+}
+
 void magnetWrite(byte pin, bool state) {
   bitWrite(MAGNET_REGISTER, pin, state);
   sendRegisters();
@@ -182,12 +187,12 @@ void magnetLedWrite(byte pin, bool state) {
   sendRegisters();
 }
 
-void  offMagnet(byte magnetPin) {
+void offMagnet(byte magnetPin) {
   bitClear(MAGNET_REGISTER, magnetPin);
   sendRegisters();
 }
 
-void  offMagnetLED(byte magnetLEDPin) {
+void offMagnetLED(byte magnetLEDPin) {
   bitClear(MAGNET_LED_REGISTER, magnetLEDPin);
   sendRegisters();
 }
@@ -209,7 +214,8 @@ void outputDisable() {
 // ==================================
 void sendRegisters() {
   digitalWrite(DATA_LOCK_PIN, LOW);
-  shiftOut(DATA_PIN, DATA_SHIFT_PIN, MSBFIRST, MAGNET_LED_REGISTER);  // Chip 2 (cascaded)
-  shiftOut(DATA_PIN, DATA_SHIFT_PIN, MSBFIRST, MAGNET_REGISTER);      // Chip 1
-  digitalWrite(DATA_LOCK_PIN, HIGH);  // Single latch — both chips update simultaneously
+  shiftOut(DATA_PIN, DATA_SHIFT_PIN, MSBFIRST, MAGNET_LED_REGISTER);  // Chip 3 (shifts deepest)
+  shiftOut(DATA_PIN, DATA_SHIFT_PIN, MSBFIRST, MAGNET_REGISTER);      // Chip 2 (middle)
+  shiftOut(DATA_PIN, DATA_SHIFT_PIN, MSBFIRST, MENU_LED_REGISTER);    // Chip 1 (closest to Arduino)
+  digitalWrite(DATA_LOCK_PIN, HIGH);  // Single latch — all chips update simultaneously
 }
