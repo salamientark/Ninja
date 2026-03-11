@@ -15,10 +15,6 @@ byte  MENU_LED_REGISTER   = 0b00000000;  // Chip 1: menu/difficulty LEDs
 byte  MAGNET_REGISTER     = 0b00000000;  // Chip 2: electromagnet outputs
 byte  MAGNET_LED_REGISTER = 0b00000000;  // Chip 3: magnet indicator LEDs
 
-
-unsigned long T1 = 0, T2 = 0;
-uint8_t TimeInterval = 5; // 5ms
-
 /* ************************************************************************** */
 /*                                     SETUP                                  */
 /* ************************************************************************** */
@@ -28,10 +24,6 @@ Button downButton(DOWN_BUTTON_PIN);
 Button startButton(START_BUTTON_PIN);
 
 void setup() {
-  // SERIAL
-  Serial.begin(9600);
-  Serial.println("=== Ninja Game Starting ===");
-
   // RANDOM SEED
   randomSeed(analogRead(0));
 
@@ -47,23 +39,23 @@ void setup() {
   pinMode(DATA_OUTPUT_PIN, OUTPUT);
 
   // Variables initialization
-  for (int i = 0; i < OBJ_NBR; i++)
-    obj_list[i] = i + 1; // Fill with values 1 to OBJ_NBR
+  // for (int i = 0; i < OBJ_NBR; i++)
+  //   obj_list[i] = i + 1; // Fill with values 1 to OBJ_NBR
                          //
-  // 74HC595 OUTPUTS
-  outputDisable(); // Keep outputs disabled until data is ready
-  digitalWrite(DATA_LOCK_PIN, LOW);
-  digitalWrite(DATA_SHIFT_PIN, LOW);
-  digitalWrite(DATA_PIN, LOW);
-
-  magnetWrite(MAGNET_1_PIN, HIGH);
-  magnetWrite(MAGNET_2_PIN, HIGH);
-  magnetWrite(MAGNET_3_PIN, HIGH);
-  magnetWrite(MAGNET_4_PIN, HIGH);
-  magnetWrite(MAGNET_5_PIN, HIGH);
-  magnetWrite(MAGNET_6_PIN, HIGH);
-  magnetWrite(MAGNET_7_PIN, HIGH);
-  outputEnable(); // Data is latched, now enable outputs
+  // // 74HC595 OUTPUTS
+  // outputDisable(); // Keep outputs disabled until data is ready
+  // digitalWrite(DATA_LOCK_PIN, LOW);
+  // digitalWrite(DATA_SHIFT_PIN, LOW);
+  // digitalWrite(DATA_PIN, LOW);
+  //
+  // magnetWrite(MAGNET_1_PIN, HIGH);
+  // magnetWrite(MAGNET_2_PIN, HIGH);
+  // magnetWrite(MAGNET_3_PIN, HIGH);
+  // magnetWrite(MAGNET_4_PIN, HIGH);
+  // magnetWrite(MAGNET_5_PIN, HIGH);
+  // magnetWrite(MAGNET_6_PIN, HIGH);
+  // magnetWrite(MAGNET_7_PIN, HIGH);
+  // outputEnable(); // Data is latched, now enable outputs
 }
 
 /* ************************************************************************** */
@@ -85,7 +77,6 @@ void loop() {
 
   // 4. Game loop
   game_loop();
-  // extendedPinSequence();
 }
 
 /* ************************************************************************** */
@@ -97,10 +88,8 @@ void  init_game() {
   // Initialize game state, reset variables, etc.
   for (int i = 0; i < OBJ_NBR; i++)
     obj_list[i] = i + 1; // Reset the object list to default values
-  // shuffleList(obj_list, OBJ_NBR); // Shuffle the list for a new game
 
   _difficulty = 2; // Reset difficulty to default
-  Serial.println("--- New game initialized ---");
 
   // Activate magnets
   MAGNET_REGISTER = 0b11111111; // All magnets on
@@ -116,10 +105,6 @@ void  game_loop() {
 
   // 2. Display the objects in a random order (e.g., using LEDs or a screen)
   while (obj_index < OBJ_NBR) {
-    // Display obj_list[obj_index] (e.g., light up corresponding LED)
-    // For demonstration, we'll just print it to the Serial Monitor
-    Serial.print("Object: ");
-    Serial.println(obj_list[obj_index]);
     offMagnet(obj_list[obj_index] - 1); // Turn off the magnet corresponding to the displayed object (assuming obj_list values are 1-indexed)
     offMagnetLED(obj_list[obj_index] - 1); // Turn off the corresponding LED
     delay(1000); // Wait for a moment before showing the next object
@@ -127,12 +112,12 @@ void  game_loop() {
   }
 }
 
-bool debounce(int pin)
-{
-  static uint16_t btnState = 0;
-  btnState = (btnState<<1) | (!digitalRead(pin));
-  return (btnState == 0xFFF0);
-}
+// bool debounce(int pin)
+// {
+//   static uint16_t btnState = 0;
+//   btnState = (btnState<<1) | (!digitalRead(pin));
+//   return (btnState == 0xFFF0);
+// }
 
 // 4. CUSTOM FUNCTION
 void shuffleList(int arrayToShuffle[], int size) {
@@ -146,25 +131,6 @@ void shuffleList(int arrayToShuffle[], int size) {
     arrayToShuffle[i] = arrayToShuffle[j];
     arrayToShuffle[j] = temp;
   }
-}
-
-void extendedPinSequence() {
-  Serial.println("Sequence: pin1 ON");
-  magnetWrite(MAGNET_1_PIN, HIGH);
-  delay(1000);
-  magnetWrite(MAGNET_1_PIN, LOW);
-
-  Serial.println("Sequence: pin2 ON");
-  magnetWrite(MAGNET_2_PIN, HIGH);
-  delay(1000);
-  magnetWrite(MAGNET_2_PIN, LOW);
-
-  Serial.println("Sequence: pin3 ON");
-  magnetWrite(MAGNET_3_PIN, HIGH);
-  delay(1000);
-  magnetWrite(MAGNET_3_PIN, LOW);
-
-  Serial.println("Sequence: done");
 }
 
 void menuLedWrite(byte pin, bool state) {
