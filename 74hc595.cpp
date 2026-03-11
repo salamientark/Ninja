@@ -30,7 +30,6 @@ void offMagnetLED(byte magnetLEDPin) {
   sendRegisters();
 }
 
-
 void outputEnable() {
   digitalWrite(DATA_OUTPUT_PIN, LOW);  // OE is active LOW
 }

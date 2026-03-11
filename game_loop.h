@@ -5,6 +5,7 @@
 # include "config.h"
 
 extern int obj_list[OBJ_NBR];
+extern int _difficulty;
 
 
 void  shuffleList(int arrayToShuffle[], int size);
