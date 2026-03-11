@@ -4,6 +4,9 @@
 int DELAY_BETWEEN_DROPS;
 int MAGNET_LED_ON_TIME;
 int DROP_TIME;
+int TWO_DROP_MIN;
+int TWO_DROP_MAX;
+int TWO_DROP_CURRENT;
 
 void shuffleList(int arrayToShuffle[], int size) {
   // Loop backward through the array
@@ -25,55 +28,89 @@ void  setup_game_loop() {
       DELAY_BETWEEN_DROPS = 2000;
       MAGNET_LED_ON_TIME = 1000;
       DROP_TIME = 2000;
+      TWO_DROP_MIN = 0;
+      TWO_DROP_MAX = 0;
       break;
     case 2:
       DELAY_BETWEEN_DROPS = 1700;
       MAGNET_LED_ON_TIME = 700;
       DROP_TIME = 2000;
+      TWO_DROP_MIN = 0;
+      TWO_DROP_MAX = 0;
       break;
     case 3:
       DELAY_BETWEEN_DROPS = 1500;
       MAGNET_LED_ON_TIME = 400;
       DROP_TIME = 2000;
+      TWO_DROP_MIN = 0;
+      TWO_DROP_MAX = 0;
       break;
     case 4:
       DELAY_BETWEEN_DROPS = 1500;
       MAGNET_LED_ON_TIME = 0;
       DROP_TIME = 1500;
+      TWO_DROP_MIN = 0;
+      TWO_DROP_MAX = 0;
       break;
     case 5:
       DELAY_BETWEEN_DROPS = 1400;
       MAGNET_LED_ON_TIME = 0;
       DROP_TIME = 1500;
-      // Init 2 drop possibility
+      TWO_DROP_MIN = 1;
+      TWO_DROP_MAX = 1;
       break;
     case 6:
       DELAY_BETWEEN_DROPS = 1000;
       MAGNET_LED_ON_TIME = 0;
       DROP_TIME = 1000;
-      // Init 2 drop possibility
+      TWO_DROP_MIN = 1;
+      TWO_DROP_MAX = 2;
       break;
     case 7:
       DELAY_BETWEEN_DROPS = 800;
       MAGNET_LED_ON_TIME = 0;
       DROP_TIME = 1000;
-      // Random led indicator
-      // Init 2 drop possibility
+      TWO_DROP_MIN = 2;
+      TWO_DROP_MAX = 3;
       break;
     case 8:
       DELAY_BETWEEN_DROPS = 400;
       MAGNET_LED_ON_TIME = 0;
       DROP_TIME = 600;
-      // confusing led indicator
-      // Init 2 drop possibility
+      TWO_DROP_MIN = 3;
+      TWO_DROP_MAX = 4;
       break;
     // Fallback to difficulty 1
     default:
       DELAY_BETWEEN_DROPS = 2000;
       MAGNET_LED_ON_TIME = 1000;
       DROP_TIME = 2000;
-     break;
+      TWO_DROP_MIN = 0;
+      TWO_DROP_MAX = 0;
+      break;
   }
+  TWO_DROP_CURRENT = random(TWO_DROP_MIN, TWO_DROP_MAX + 1);
+}
+
+void oneDrop(int obj) {
+  magnetLedWrite(obj, 1);
+  delay(MAGNET_LED_ON_TIME);
+  offMagnet(obj);
+  delay(DROP_TIME);
+  offMagnetLED(obj);
+  delay(DELAY_BETWEEN_DROPS);
+}
+
+void twoDrop(int obj1, int obj2) {
+  magnetLedWrite(obj1, 1);
+  magnetLedWrite(obj2, 1);
+  delay(MAGNET_LED_ON_TIME);
+  offMagnet(obj1);
+  offMagnet(obj2);
+  delay(DROP_TIME);
+  offMagnetLED(obj1);
+  offMagnetLED(obj2);
+  delay(DELAY_BETWEEN_DROPS);
 }
 
 void  game_loop() {
@@ -90,19 +127,16 @@ void  game_loop() {
 
   delay(1000); // Wait a moment before starting the game loop
 
-  // 2. Display the objects in a random order (e.g., using LEDs or a screen)
   while (obj_index < OBJ_NBR) {
-    // Show the droppng object
-    magnetLedWrite(obj_list[obj_index] - 1, 1); // Turn on the corresponding LED
-    delay(MAGNET_LED_ON_TIME); // Wait for a moment before showing the next object
+    bool doTwoDrop = (TWO_DROP_CURRENT > 0) && (obj_index + 1 < OBJ_NBR) && (random(0, 2) == 0);
 
-    // Drop the object
-    offMagnet(obj_list[obj_index] - 1); // Turn off the magnet corresponding to the displayed object (assuming obj_list values are 1-indexed)
-    delay(DROP_TIME); // Simulate the drop time for the object
-
-    // Switch off the LED after the drop
-    offMagnetLED(obj_list[obj_index] - 1); // Ensure the LED is turned off after the drop
-    delay(DELAY_BETWEEN_DROPS); // Wait before showing the next object
-    obj_index++;
+    if (doTwoDrop) {
+      twoDrop(obj_list[obj_index] - 1, obj_list[obj_index + 1] - 1);
+      obj_index += 2;
+      TWO_DROP_CURRENT--;
+    } else {
+      oneDrop(obj_list[obj_index] - 1);
+      obj_index++;
+    }
   }
 }
