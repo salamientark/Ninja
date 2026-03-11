@@ -135,6 +135,7 @@ void twoDrop(int obj1, int obj2) {
   delay(DELAY_BETWEEN_DROPS);
 }
 
+
 void  game_loop() {
   int obj_index = 0;
 
