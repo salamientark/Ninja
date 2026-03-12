@@ -75,3 +75,72 @@ static void anim_alternate(void) {
     MAGNET_LED_REGISTER = (frameIndex % 2 == 0) ? 0xAA : 0x55;
     sendRegisters();
 }
+
+// ===== Confuse Animation (Difficulty 8) =====
+#define CONFUSE_FRAME_MS       50
+#define CONFUSE_ANIM_DURATION  4000   // ms per animation before random switch
+
+typedef void (*ConfuseAnimFn)(int frameIndex);
+
+static void canim_random(int fi) {
+    MENU_LED_REGISTER   = (byte)random(0, 256);
+    MAGNET_LED_REGISTER = (byte)random(0, 256);
+    sendRegisters();
+}
+static void canim_chase(int fi) {
+    MAGNET_LED_REGISTER = (1 << (fi % 8));
+    MENU_LED_REGISTER   = ~MAGNET_LED_REGISTER;
+    sendRegisters();
+}
+static void canim_knight(int fi) {
+    int period = 14;
+    int step   = fi % period;
+    int pos    = (step < 8) ? step : (period - step);
+    MAGNET_LED_REGISTER = (1 << pos);
+    MENU_LED_REGISTER   = ~MAGNET_LED_REGISTER;
+    sendRegisters();
+}
+static void canim_alternate(int fi) {
+    MAGNET_LED_REGISTER = (fi % 2 == 0) ? 0xAA : 0x55;
+    MENU_LED_REGISTER   = ~MAGNET_LED_REGISTER;
+    sendRegisters();
+}
+
+static ConfuseAnimFn confuseAnims[] = {
+    canim_random,
+    canim_chase,
+    canim_knight,
+    canim_alternate,
+};
+static const int CONFUSE_ANIM_COUNT = 4;
+
+static unsigned long cLastFrameTime = 0;
+static unsigned long cAnimStartTime = 0;
+static int           cCurrentAnim   = 0;
+static int           cFrameIndex    = 0;
+
+void confuse_anim_reset() {
+    cLastFrameTime = 0;
+    cAnimStartTime = millis();
+    cCurrentAnim   = random(0, CONFUSE_ANIM_COUNT);
+    cFrameIndex    = 0;
+    MENU_LED_REGISTER   = 0x00;
+    MAGNET_LED_REGISTER = 0x00;
+    sendRegisters();
+}
+
+void confuse_anim_tick() {
+    unsigned long now = millis();
+
+    if (now - cAnimStartTime >= CONFUSE_ANIM_DURATION) {
+        cCurrentAnim   = random(0, CONFUSE_ANIM_COUNT);
+        cAnimStartTime = now;
+        cFrameIndex    = 0;
+    }
+
+    if (now - cLastFrameTime >= CONFUSE_FRAME_MS) {
+        cLastFrameTime = now;
+        confuseAnims[cCurrentAnim](cFrameIndex);
+        cFrameIndex++;
+    }
+}

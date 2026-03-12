@@ -1,4 +1,5 @@
 #include "game_loop.h"
+#include "standby.h"
 
 /* GLOBAL VARIABLES */
 int DELAY_BETWEEN_DROPS;
@@ -136,6 +137,44 @@ void twoDrop(int obj1, int obj2) {
 }
 
 
+static void game_loop_8() {
+  int obj_index      = 0;
+  int twoDrop_budget = TWO_DROP_CURRENT;
+
+  confuse_anim_reset();
+
+  unsigned long dropTimer = millis() + 1000UL;
+
+  while (obj_index < OBJ_NBR) {
+    unsigned long now = millis();
+
+    confuse_anim_tick();
+
+    if (now >= dropTimer) {
+      bool doTwoDrop = (twoDrop_budget > 0)
+                    && (obj_index + 1 < OBJ_NBR)
+                    && (random(0, 2) == 0);
+
+      if (doTwoDrop) {
+        offMagnet(obj_list[obj_index] - 1);
+        offMagnet(obj_list[obj_index + 1] - 1);
+        obj_index     += 2;
+        twoDrop_budget--;
+      } else {
+        offMagnet(obj_list[obj_index] - 1);
+        obj_index++;
+      }
+
+      unsigned long interval = (unsigned long)random(DROP_TIME, DROP_TIME + DELAY_BETWEEN_DROPS + 1);
+      dropTimer = now + interval;
+    }
+  }
+
+  MENU_LED_REGISTER   = 0x00;
+  MAGNET_LED_REGISTER = 0x00;
+  sendRegisters();
+}
+
 void  game_loop() {
   int obj_index = 0;
 
@@ -147,6 +186,11 @@ void  game_loop() {
 
   // Shuffle the list of objects
   shuffleList(obj_list, OBJ_NBR);
+
+  if (_difficulty == 8) {
+    game_loop_8();
+    return;
+  }
 
   delay(1000); // Wait a moment before starting the game loop
 
