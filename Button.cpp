@@ -13,6 +13,10 @@ Button::Button(int pinNumber, unsigned long delayTime) {
 
 void  Button::begin() {
   pinMode(pin, INPUT_PULLUP); // Uses Arduino's built-in resistor
+  delay(50);                  // Let pullup charge any debouncing capacitors
+  buttonState = digitalRead(pin);
+  lastButtonState = buttonState;
+  lastDebounceTime = millis();
 }
 
 

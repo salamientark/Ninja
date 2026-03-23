@@ -2,7 +2,8 @@
 #include "standby.h"
 
 /* GLOBAL VARIABLES */
-int DELAY_BETWEEN_DROPS;
+int DELAY_BETWEEN_DROPS_MIN;
+int DELAY_BETWEEN_DROPS_MAX;
 int MAGNET_LED_ON_TIME;
 int DROP_TIME;
 int TWO_DROP_MIN;
@@ -29,49 +30,49 @@ void  setup_game_loop() {
   /* Initial setup | difficulty_1 */
   switch (_difficulty) {
     case 1:
-      DELAY_BETWEEN_DROPS = 2000;
+      DELAY_BETWEEN_DROPS_MIN = 2000; DELAY_BETWEEN_DROPS_MAX = 2000;
       MAGNET_LED_ON_TIME = 1000;
       DROP_TIME = 2000;
       TWO_DROP_MIN = 0;
       TWO_DROP_MAX = 0;
       break;
     case 2:
-      DELAY_BETWEEN_DROPS = 1700;
+      DELAY_BETWEEN_DROPS_MIN = 1700; DELAY_BETWEEN_DROPS_MAX = 1700;
       MAGNET_LED_ON_TIME = 700;
       DROP_TIME = 2000;
       TWO_DROP_MIN = 0;
       TWO_DROP_MAX = 0;
       break;
     case 3:
-      DELAY_BETWEEN_DROPS = 1500;
+      DELAY_BETWEEN_DROPS_MIN = 1500; DELAY_BETWEEN_DROPS_MAX = 1500;
       MAGNET_LED_ON_TIME = 400;
       DROP_TIME = 2000;
       TWO_DROP_MIN = 0;
       TWO_DROP_MAX = 0;
       break;
     case 4:
-      DELAY_BETWEEN_DROPS = 1500;
+      DELAY_BETWEEN_DROPS_MIN = 1500; DELAY_BETWEEN_DROPS_MAX = 1500;
       MAGNET_LED_ON_TIME = 0;
       DROP_TIME = 1500;
       TWO_DROP_MIN = 0;
       TWO_DROP_MAX = 0;
       break;
     case 5:
-      DELAY_BETWEEN_DROPS = 1400;
+      DELAY_BETWEEN_DROPS_MIN = 1000; DELAY_BETWEEN_DROPS_MAX = 1800;
       MAGNET_LED_ON_TIME = 0;
       DROP_TIME = 1500;
       TWO_DROP_MIN = 1;
       TWO_DROP_MAX = 1;
       break;
     case 6:
-      DELAY_BETWEEN_DROPS = 1000;
+      DELAY_BETWEEN_DROPS_MIN = 700;  DELAY_BETWEEN_DROPS_MAX = 1300;
       MAGNET_LED_ON_TIME = 0;
       DROP_TIME = 1000;
       TWO_DROP_MIN = 1;
       TWO_DROP_MAX = 2;
       break;
     case 7:
-      DELAY_BETWEEN_DROPS = 800;
+      DELAY_BETWEEN_DROPS_MIN = 500;  DELAY_BETWEEN_DROPS_MAX = 1100;
       MAGNET_LED_ON_TIME = 0;
       DROP_TIME = 1000;
       TWO_DROP_MIN = 2;
@@ -80,7 +81,7 @@ void  setup_game_loop() {
       FAKE_LED_ON_TIME    = 300;
       break;
     case 8:
-      DELAY_BETWEEN_DROPS = 400;
+      DELAY_BETWEEN_DROPS_MIN = 200;  DELAY_BETWEEN_DROPS_MAX = 600;
       MAGNET_LED_ON_TIME = 0;
       DROP_TIME = 600;
       TWO_DROP_MIN = 3;
@@ -88,7 +89,7 @@ void  setup_game_loop() {
       break;
     // Fallback to difficulty 1
     default:
-      DELAY_BETWEEN_DROPS = 2000;
+      DELAY_BETWEEN_DROPS_MIN = 2000; DELAY_BETWEEN_DROPS_MAX = 2000;
       MAGNET_LED_ON_TIME = 1000;
       DROP_TIME = 2000;
       TWO_DROP_MIN = 0;
@@ -112,20 +113,20 @@ void showRandomFakeLeds() {
 }
 
 void oneDrop(int obj) {
+  magnetLedWrite(obj, 1);
   if (MAGNET_LED_ON_TIME > 0) {
-    magnetLedWrite(obj, 1);
     delay(MAGNET_LED_ON_TIME);
   }
   offMagnet(obj);
   delay(DROP_TIME);
   offMagnetLED(obj);
-  delay(DELAY_BETWEEN_DROPS);
+  delay(random(DELAY_BETWEEN_DROPS_MIN, DELAY_BETWEEN_DROPS_MAX + 1));
 }
 
 void twoDrop(int obj1, int obj2) {
+  magnetLedWrite(obj1, 1);
+  magnetLedWrite(obj2, 1);
   if (MAGNET_LED_ON_TIME > 0) {
-    magnetLedWrite(obj1, 1);
-    magnetLedWrite(obj2, 1);
     delay(MAGNET_LED_ON_TIME);
   }
   offMagnet(obj1);
@@ -133,7 +134,7 @@ void twoDrop(int obj1, int obj2) {
   delay(DROP_TIME);
   offMagnetLED(obj1);
   offMagnetLED(obj2);
-  delay(DELAY_BETWEEN_DROPS);
+  delay(random(DELAY_BETWEEN_DROPS_MIN, DELAY_BETWEEN_DROPS_MAX + 1));
 }
 
 
@@ -165,7 +166,7 @@ static void game_loop_8() {
         obj_index++;
       }
 
-      unsigned long interval = (unsigned long)random(DROP_TIME, DROP_TIME + DELAY_BETWEEN_DROPS + 1);
+      unsigned long interval = (unsigned long)random(DROP_TIME + DELAY_BETWEEN_DROPS_MIN, DROP_TIME + DELAY_BETWEEN_DROPS_MAX + 1);
       dropTimer = now + interval;
     }
   }
