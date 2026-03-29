@@ -96,7 +96,7 @@ void ledWrite(byte bit, bool state) {
 // ---------------------------------------------------------------------------
 void show_difficulty() {
   for (int i = 0; i < DIFFICULTY_MAX; i++)
-    ledWrite(i, i < _difficulty);
+    ledWrite(DIFFICULTY_MAX - 1 - i, i < _difficulty);
 }
 
 // ---------------------------------------------------------------------------
