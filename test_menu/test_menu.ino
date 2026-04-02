@@ -1,157 +1,87 @@
-// test_menu.ino
-// Quick hardware test for the new menu architecture:
-//   - 3 buttons (Difficulty+, Difficulty-, Start)
-//   - 1x 74HC595 driving 8 LEDs
-//
-// Reuses Button class pattern and menu_loop logic from main project.
-// Adjust PIN_* defines below to match your wiring.
+#include "config.h"
+#include "Button.h"
+#include "74hc595.h"
+#include "menu.h"
+#include "game_loop.h"
 
-#include <Arduino.h>
+/* ************************************************************************** */
+/*                                GLOBAL & CONSTANTS                          */
+/* ************************************************************************** */
+// OBJ_NBR and pin/difficulty constants are defined in config.h
 
-// ---------------------------------------------------------------------------
-// PIN CONFIG  (match your new schematic)
-// ---------------------------------------------------------------------------
-#define UP_PIN          7
-#define DOWN_PIN        8
-#define START_PIN       9
+// Global variables
+int   _difficulty = 2;
+int   obj_list[OBJ_NBR];
+byte  MENU_LED_REGISTER   = 0b00000000;  // Chain A — menu/difficulty LEDs
+byte  MAGNET_REGISTER     = 0b00000000;  // Chain B — electromagnet outputs
+byte  MAGNET_LED_REGISTER = 0b00000000;  // Chain B — magnet indicator LEDs
 
-#define DATA_PIN        13   // SER / DS
-#define SHIFT_PIN       10   // SRCLK / SH_CP
-#define LATCH_PIN       11   // RCLK / ST_CP
-#define OE_PIN          12   // OE (active LOW)
+/* ************************************************************************** */
+/*                                     SETUP                                  */
+/* ************************************************************************** */
 
-#define DIFFICULTY_MAX  8
+Button upButton(UP_BUTTON_PIN);
+Button downButton(DOWN_BUTTON_PIN);
+Button startButton(START_BUTTON_PIN);
 
-// ---------------------------------------------------------------------------
-// Button class (same implementation as Button.h / Button.cpp)
-// ---------------------------------------------------------------------------
-class Button {
-  int           pin;
-  unsigned long lastDebounceTime;
-  unsigned long debounceDelay;
-  int           buttonState;
-  int           lastButtonState;
-
-public:
-  Button(int pinNumber, unsigned long delayTime = 10)
-    : pin(pinNumber), debounceDelay(delayTime),
-      lastDebounceTime(0), buttonState(HIGH), lastButtonState(HIGH) {}
-
-  void begin() {
-    pinMode(pin, INPUT_PULLUP);
-    delay(50);
-    buttonState = digitalRead(pin);
-    lastButtonState = buttonState;
-    lastDebounceTime = millis();
-  }
-
-  bool isPressed() {
-    int  reading   = digitalRead(pin);
-    bool triggered = false;
-
-    if (reading != lastButtonState)
-      lastDebounceTime = millis();
-
-    if ((millis() - lastDebounceTime) > debounceDelay) {
-      if (reading != buttonState) {
-        buttonState = reading;
-        if (buttonState == LOW)
-          triggered = true;
-      }
-    }
-    lastButtonState = reading;
-    return triggered;
-  }
-};
-
-// ---------------------------------------------------------------------------
-// Globals
-// ---------------------------------------------------------------------------
-int  _difficulty      = 2;
-byte LED_REGISTER     = 0b00000000;
-
-Button upButton(UP_PIN);
-Button downButton(DOWN_PIN);
-Button startButton(START_PIN);
-
-// ---------------------------------------------------------------------------
-// 74HC595 helpers (single chip)
-// ---------------------------------------------------------------------------
-void sendRegister() {
-  digitalWrite(LATCH_PIN, LOW);
-  shiftOut(DATA_PIN, SHIFT_PIN, MSBFIRST, LED_REGISTER);
-  digitalWrite(LATCH_PIN, HIGH);
-}
-
-void ledWrite(byte bit, bool state) {
-  if (state)
-    LED_REGISTER |=  (1 << bit);
-  else
-    LED_REGISTER &= ~(1 << bit);
-  sendRegister();
-}
-
-// ---------------------------------------------------------------------------
-// show_difficulty: light N LEDs for current difficulty (same as menu.cpp)
-// ---------------------------------------------------------------------------
-void show_difficulty() {
-  for (int i = 0; i < DIFFICULTY_MAX; i++)
-    ledWrite(DIFFICULTY_MAX - 1 - i, i < _difficulty);
-}
-
-// ---------------------------------------------------------------------------
-// menu_loop: same pattern as menu.cpp, no standby
-// ---------------------------------------------------------------------------
-void menu_loop() {
-  while (true) {
-    if (upButton.isPressed()) {
-      if (_difficulty < DIFFICULTY_MAX) _difficulty++;
-      show_difficulty();
-    }
-    if (downButton.isPressed()) {
-      if (_difficulty > 1) _difficulty--;
-      show_difficulty();
-    }
-    if (startButton.isPressed()) {
-      return;  // exit to "game"
-    }
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Setup / Loop
-// ---------------------------------------------------------------------------
 void setup() {
-  Serial.begin(9600);
+  // RANDOM SEED
+  randomSeed(analogRead(0));
 
+  // INPUTS
   upButton.begin();
   downButton.begin();
   startButton.begin();
 
-  pinMode(DATA_PIN,  OUTPUT);
-  pinMode(SHIFT_PIN, OUTPUT);
-  pinMode(LATCH_PIN, OUTPUT);
-  pinMode(OE_PIN,    OUTPUT);
-  digitalWrite(OE_PIN, LOW);  // enable outputs
+  // OUTPUTS — Chain A (menu LEDs)
+  pinMode(MENU_DATA_PIN,  OUTPUT);
+  pinMode(MENU_SHIFT_PIN, OUTPUT);
+  pinMode(MENU_LATCH_PIN, OUTPUT);
+  pinMode(MENU_OE_PIN,    OUTPUT);
+  digitalWrite(MENU_OE_PIN, LOW);   // Enable Chain A outputs
 
-  show_difficulty();
-  Serial.println("Menu ready. Up/Down = difficulty, Start = confirm.");
+  // OUTPUTS — Chain B (magnets + magnet LEDs)
+  pinMode(MAGNET_DATA_PIN,  OUTPUT);
+  pinMode(MAGNET_SHIFT_PIN, OUTPUT);
+  pinMode(MAGNET_LATCH_PIN, OUTPUT);
+  pinMode(MAGNET_OE_PIN,    OUTPUT);
+  digitalWrite(MAGNET_OE_PIN, LOW); // Enable Chain B outputs
 }
 
+/* ************************************************************************** */
+/*                                 MAIN LOOP                                  */
+/* ************************************************************************** */
+
 void loop() {
-  show_difficulty();
+  // 1. Setup initial state
+  init_game();
+
+  // 2. Show menu and allow difficulty selection
   menu_loop();
 
-  // Reached here = Start was pressed
-  Serial.print("Started! Difficulty = ");
-  Serial.println(_difficulty);
+  // 3. Switch off menu LEDs
+  MENU_LED_REGISTER = 0b00000000;
+  sendRegisters();
 
-  // Flash all LEDs 3x as "game start" confirmation
-  for (int i = 0; i < 3; i++) {
-    LED_REGISTER = 0xFF; sendRegister(); delay(200);
-    LED_REGISTER = 0x00; sendRegister(); delay(200);
-  }
+  delay(1000); // Small delay to avoid bouncing issues when starting the game
 
-  // Reset difficulty and loop back to menu
-  _difficulty = 2;
+  // 4. Game loop
+  game_loop();
+}
+
+/* ************************************************************************** */
+/*                              CUSTOM FUNCTIONS                              */
+/* ************************************************************************** */
+
+void  init_game() {
+  // Initialize game state, reset variables, etc.
+  for (int i = 0; i < OBJ_NBR; i++)
+    obj_list[i] = i + 1; // Reset the object list to default values
+
+  _difficulty = 2; // Reset difficulty to default
+
+  // Activate magnets
+  MAGNET_REGISTER = 0b11111111; // All magnets on
+  MAGNET_LED_REGISTER = 0b11111111; // All LEDs on
+  sendRegisters();
 }
