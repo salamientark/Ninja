@@ -47,11 +47,17 @@ static void sendMenuRegister() {
   digitalWrite(MENU_LATCH_PIN, HIGH);
 }
 
-// Chain B: 2 chips — magnets (closest) + magnet LEDs (deepest)
+// Chain B: 2 chips — each chip handles one side (4 LEDs + 4 magnets)
+//   Per chip: Q0–Q3 = LEDs, Q4–Q7 = magnets
+//   Side A (chip 2, closest):  objects 0–3
+//   Side B (chip 3, deepest):  objects 4–7
 static void sendMagnetRegisters() {
+  byte sideA = ((MAGNET_REGISTER & 0x0F) << 4) | (MAGNET_LED_REGISTER & 0x0F);
+  byte sideB = (MAGNET_REGISTER & 0xF0)        | ((MAGNET_LED_REGISTER >> 4) & 0x0F);
+
   digitalWrite(MAGNET_LATCH_PIN, LOW);
-  shiftOut(MAGNET_DATA_PIN, MAGNET_SHIFT_PIN, MSBFIRST, MAGNET_LED_REGISTER); // Chip 3 — shifts deepest
-  shiftOut(MAGNET_DATA_PIN, MAGNET_SHIFT_PIN, MSBFIRST, MAGNET_REGISTER);     // Chip 2 — closest to Arduino
+  shiftOut(MAGNET_DATA_PIN, MAGNET_SHIFT_PIN, MSBFIRST, sideB); // Chip 3 — shifts deepest
+  shiftOut(MAGNET_DATA_PIN, MAGNET_SHIFT_PIN, MSBFIRST, sideA); // Chip 2 — closest to Arduino
   digitalWrite(MAGNET_LATCH_PIN, HIGH);
 }
 
