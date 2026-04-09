@@ -114,26 +114,32 @@ void showRandomFakeLeds() {
 
 void oneDrop(int obj) {
   magnetLedWrite(obj, 1);
+  sendRegisters();
   if (MAGNET_LED_ON_TIME > 0) {
     delay(MAGNET_LED_ON_TIME);
   }
   offMagnet(obj);
+  sendRegisters();
   delay(DROP_TIME);
   offMagnetLED(obj);
+  sendRegisters();
   delay(random(DELAY_BETWEEN_DROPS_MIN, DELAY_BETWEEN_DROPS_MAX + 1));
 }
 
 void twoDrop(int obj1, int obj2) {
   magnetLedWrite(obj1, 1);
   magnetLedWrite(obj2, 1);
+  sendRegisters();
   if (MAGNET_LED_ON_TIME > 0) {
     delay(MAGNET_LED_ON_TIME);
   }
   offMagnet(obj1);
   offMagnet(obj2);
+  sendRegisters();
   delay(DROP_TIME);
   offMagnetLED(obj1);
   offMagnetLED(obj2);
+  sendRegisters();
   delay(random(DELAY_BETWEEN_DROPS_MIN, DELAY_BETWEEN_DROPS_MAX + 1));
 }
 
@@ -160,10 +166,12 @@ static void game_loop_8() {
       if (doTwoDrop) {
         offMagnet(obj_list[obj_index] - 1);
         offMagnet(obj_list[obj_index + 1] - 1);
+        sendRegisters();
         obj_index     += 2;
         twoDrop_budget--;
       } else {
         offMagnet(obj_list[obj_index] - 1);
+        sendRegisters();
         obj_index++;
       }
 

@@ -2,32 +2,26 @@
 
 void menuLedWrite(byte pin, bool state) {
   bitWrite(MENU_LED_REGISTER, pin, state);
-  sendRegisters();
 }
 
 void offMenuLed(byte pin) {
   bitClear(MENU_LED_REGISTER, pin);
-  sendRegisters();
 }
 
 void magnetWrite(byte pin, bool state) {
   bitWrite(MAGNET_REGISTER, pin, state);
-  sendRegisters();
 }
 
 void magnetLedWrite(byte pin, bool state) {
   bitWrite(MAGNET_LED_REGISTER, pin, state);
-  sendRegisters();
 }
 
 void offMagnet(byte magnetPin) {
   bitClear(MAGNET_REGISTER, magnetPin);
-  sendRegisters();
 }
 
 void offMagnetLED(byte magnetLEDPin) {
   bitClear(MAGNET_LED_REGISTER, magnetLEDPin);
-  sendRegisters();
 }
 
 void outputEnable() {

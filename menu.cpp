@@ -1,4 +1,5 @@
 #include "menu.h"
+#include "74hc595.h"
 #include "standby.h"
 #include <Arduino.h>
 
@@ -61,4 +62,5 @@ void show_difficulty() {
     menuLedWrite(DIFFICULTY_MAX - 1 - (MENU_LED_1_PIN + counter), counter < _difficulty);
     counter++;
   }
+  sendRegisters();
 }
