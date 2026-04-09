@@ -16,8 +16,8 @@ void shuffleList(int arrayToShuffle[], int size) {
   // Loop backward through the array
   for (int i = size - 1; i > 0; i--) {
     // Pick a random index from 0 to i
-    int j = random(0, i + 1); 
-    
+    int j = random(0, i + 1);
+
     // Swap the elements
     int temp = arrayToShuffle[i];
     arrayToShuffle[i] = arrayToShuffle[j];

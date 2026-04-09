@@ -32,7 +32,7 @@ bool  Button::isPressed() {
 
   // If enough time has passed to ignore the bouncing
   if ((millis() - lastDebounceTime) > debounceDelay) {
-    
+
     // If the state has actually changed to a new state
     if (reading != buttonState) {
       buttonState = reading;

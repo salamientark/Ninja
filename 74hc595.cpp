@@ -31,23 +31,38 @@ void offMagnetLED(byte magnetLEDPin) {
 }
 
 void outputEnable() {
-  digitalWrite(DATA_OUTPUT_PIN, LOW);  // OE is active LOW
+  digitalWrite(MENU_OE_PIN,   LOW);  // OE is active LOW
+  digitalWrite(MAGNET_OE_PIN, LOW);
 }
 
 void outputDisable() {
-  digitalWrite(DATA_OUTPUT_PIN, HIGH);
+  digitalWrite(MENU_OE_PIN,   HIGH);
+  digitalWrite(MAGNET_OE_PIN, HIGH);
 }
 
-// ==================================
-// Fonction : sendRegisters
-// Sends both chip registers in one latch cycle.
-// Chip 2 (LED) is shifted first so it cascades through chip 1's Q7'.
-// Chip 1 (magnets) is shifted second and stays in chip 1.
-// ==================================
+// Chain A: 1 chip — menu LEDs only
+static void sendMenuRegister() {
+  digitalWrite(MENU_LATCH_PIN, LOW);
+  shiftOut(MENU_DATA_PIN, MENU_SHIFT_PIN, MSBFIRST, MENU_LED_REGISTER);
+  digitalWrite(MENU_LATCH_PIN, HIGH);
+}
+
+// Chain B: 2 chips — each chip handles one side (4 LEDs + 4 magnets)
+//   Per chip: Q0–Q3 = LEDs, Q4–Q7 = magnets
+//   Side A (chip 2, closest):  objects 0–3
+//   Side B (chip 3, deepest):  objects 4–7
+static void sendMagnetRegisters() {
+  byte sideA = ((MAGNET_REGISTER & 0x0F) << 4) | (MAGNET_LED_REGISTER & 0x0F);
+  byte sideB = (MAGNET_REGISTER & 0xF0)        | ((MAGNET_LED_REGISTER >> 4) & 0x0F);
+
+  digitalWrite(MAGNET_LATCH_PIN, LOW);
+  shiftOut(MAGNET_DATA_PIN, MAGNET_SHIFT_PIN, MSBFIRST, sideB); // Chip 3 — shifts deepest
+  shiftOut(MAGNET_DATA_PIN, MAGNET_SHIFT_PIN, MSBFIRST, sideA); // Chip 2 — closest to Arduino
+  digitalWrite(MAGNET_LATCH_PIN, HIGH);
+}
+
+// Public: update all hardware simultaneously
 void sendRegisters() {
-  digitalWrite(DATA_LOCK_PIN, LOW);
-  shiftOut(DATA_PIN, DATA_SHIFT_PIN, MSBFIRST, MAGNET_LED_REGISTER);  // Chip 3 (shifts deepest)
-  shiftOut(DATA_PIN, DATA_SHIFT_PIN, MSBFIRST, MAGNET_REGISTER);      // Chip 2 (middle)
-  shiftOut(DATA_PIN, DATA_SHIFT_PIN, MSBFIRST, MENU_LED_REGISTER);    // Chip 1 (closest to Arduino)
-  digitalWrite(DATA_LOCK_PIN, HIGH);  // Single latch — all chips update simultaneously
+  sendMenuRegister();
+  sendMagnetRegisters();
 }

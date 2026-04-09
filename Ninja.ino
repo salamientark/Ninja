@@ -1,5 +1,6 @@
 #include "config.h"
 #include "Button.h"
+#include "74hc595.h"
 #include "menu.h"
 #include "game_loop.h"
 
@@ -8,13 +9,12 @@
 /* ************************************************************************** */
 // OBJ_NBR and pin/difficulty constants are defined in config.h
 
-
 // Global variables
 int   _difficulty = 2;
 int   obj_list[OBJ_NBR];
-byte  MENU_LED_REGISTER   = 0b00000000;  // Chip 1: menu/difficulty LEDs
-byte  MAGNET_REGISTER     = 0b00000000;  // Chip 2: electromagnet outputs
-byte  MAGNET_LED_REGISTER = 0b00000000;  // Chip 3: magnet indicator LEDs
+byte  MENU_LED_REGISTER   = 0b00000000;  // Chain A — menu/difficulty LEDs
+byte  MAGNET_REGISTER     = 0b00000000;  // Chain B — electromagnet outputs
+byte  MAGNET_LED_REGISTER = 0b00000000;  // Chain B — magnet indicator LEDs
 
 /* ************************************************************************** */
 /*                                     SETUP                                  */
@@ -33,11 +33,19 @@ void setup() {
   downButton.begin();
   startButton.begin();
 
-  // OUTPUTS
-  pinMode(DATA_LOCK_PIN, OUTPUT);
-  pinMode(DATA_SHIFT_PIN, OUTPUT);
-  pinMode(DATA_PIN, OUTPUT);
-  pinMode(DATA_OUTPUT_PIN, OUTPUT);
+  // OUTPUTS — Chain A (menu LEDs)
+  pinMode(MENU_DATA_PIN,  OUTPUT);
+  pinMode(MENU_SHIFT_PIN, OUTPUT);
+  pinMode(MENU_LATCH_PIN, OUTPUT);
+  pinMode(MENU_OE_PIN,    OUTPUT);
+  digitalWrite(MENU_OE_PIN, LOW);   // Enable Chain A outputs
+
+  // OUTPUTS — Chain B (magnets + magnet LEDs)
+  pinMode(MAGNET_DATA_PIN,  OUTPUT);
+  pinMode(MAGNET_SHIFT_PIN, OUTPUT);
+  pinMode(MAGNET_LATCH_PIN, OUTPUT);
+  pinMode(MAGNET_OE_PIN,    OUTPUT);
+  digitalWrite(MAGNET_OE_PIN, LOW); // Enable Chain B outputs
 }
 
 /* ************************************************************************** */
@@ -64,7 +72,6 @@ void loop() {
 /* ************************************************************************** */
 /*                              CUSTOM FUNCTIONS                              */
 /* ************************************************************************** */
-
 
 void  init_game() {
   // Initialize game state, reset variables, etc.

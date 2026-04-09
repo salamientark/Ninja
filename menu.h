@@ -3,7 +3,7 @@
 #include "Button.h"
 #include "config.h"
 
-// Globals defined in Ninja.ino, referenced here
+// Globals defined in test_menu.ino, referenced here
 extern int _difficulty;
 extern Button upButton;
 extern Button downButton;

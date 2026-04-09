@@ -1,7 +1,7 @@
 #pragma once
 
-# include <Arduino.h>
-# include "config.h"
+#include <Arduino.h>
+#include "config.h"
 
 extern byte MENU_LED_REGISTER;
 extern byte MAGNET_REGISTER;

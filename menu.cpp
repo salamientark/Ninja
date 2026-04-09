@@ -58,7 +58,7 @@ void menu_loop() {
 void show_difficulty() {
   int counter = 0;
   while (counter < DIFFICULTY_MAX) {
-    menuLedWrite(MENU_LED_1_PIN + counter, counter < _difficulty);
+    menuLedWrite(DIFFICULTY_MAX - 1 - (MENU_LED_1_PIN + counter), counter < _difficulty);
     counter++;
   }
 }
