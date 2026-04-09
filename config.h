@@ -27,26 +27,6 @@
 #define MAGNET_LATCH_PIN      7   // RCLK / ST_CP
 #define MAGNET_SHIFT_PIN      8   // SRCLK / SH_CP
 
-// Chip 2 — electromagnets (Q0–Q7)
-#define MAGNET_1_PIN          0
-#define MAGNET_2_PIN          1
-#define MAGNET_3_PIN          2
-#define MAGNET_4_PIN          3
-#define MAGNET_5_PIN          4
-#define MAGNET_6_PIN          5
-#define MAGNET_7_PIN          6
-#define MAGNET_8_PIN          7
-
-// Chip 3 — magnet indicator LEDs (Q0–Q7)
-#define MAGNET_LED_1_PIN      0
-#define MAGNET_LED_2_PIN      1
-#define MAGNET_LED_3_PIN      2
-#define MAGNET_LED_4_PIN      3
-#define MAGNET_LED_5_PIN      4
-#define MAGNET_LED_6_PIN      5
-#define MAGNET_LED_7_PIN      6
-#define MAGNET_LED_8_PIN      7
-
 // PROGRAM CONSTANTS
 #define DIFFICULTY_MAX        8
 #define OBJ_NBR               8
