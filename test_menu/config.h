@@ -22,10 +22,10 @@
 #define MENU_LED_8_PIN        7
 
 // Chain B — Magnets + Magnet LEDs (74HC595 #2 → #3 chained)
-#define MAGNET_DATA_PIN       8   // SER / DS
-#define MAGNET_OE_PIN         7   // OE (active LOW)
-#define MAGNET_LATCH_PIN      6   // RCLK / ST_CP
-#define MAGNET_SHIFT_PIN      5   // SRCLK / SH_CP
+#define MAGNET_DATA_PIN       5   // SER / DS
+#define MAGNET_OE_PIN         6   // OE (active LOW)
+#define MAGNET_LATCH_PIN      7   // RCLK / ST_CP
+#define MAGNET_SHIFT_PIN      8   // SRCLK / SH_CP
 
 // Chip 2 — electromagnets (Q0–Q7)
 #define MAGNET_1_PIN          0
