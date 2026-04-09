@@ -11,7 +11,7 @@
 
 // Global variables
 int   _difficulty = 2;
-int   obj_list[OBJ_NBR];
+byte  obj_list[OBJ_NBR];
 byte  MENU_LED_REGISTER   = 0b00000000;  // Chain A — menu/difficulty LEDs
 byte  MAGNET_REGISTER     = 0b00000000;  // Chain B — electromagnet outputs
 byte  MAGNET_LED_REGISTER = 0b00000000;  // Chain B — magnet indicator LEDs
@@ -76,7 +76,7 @@ void loop() {
 void  init_game() {
   // Initialize game state, reset variables, etc.
   for (int i = 0; i < OBJ_NBR; i++)
-    obj_list[i] = i + 1; // Reset the object list to default values
+    obj_list[i] = i; // 0-based object indices
 
   _difficulty = 2; // Reset difficulty to default
 

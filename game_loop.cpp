@@ -12,14 +12,10 @@ static int TWO_DROP_CURRENT;
 static bool RANDOM_LEDS_ENABLED = false;
 static int  FAKE_LED_ON_TIME     = 0;
 
-void shuffleList(int arrayToShuffle[], int size) {
-  // Loop backward through the array
+void shuffleList(byte arrayToShuffle[], int size) {
   for (int i = size - 1; i > 0; i--) {
-    // Pick a random index from 0 to i
     int j = random(0, i + 1);
-
-    // Swap the elements
-    int temp = arrayToShuffle[i];
+    byte temp = arrayToShuffle[i];
     arrayToShuffle[i] = arrayToShuffle[j];
     arrayToShuffle[j] = temp;
   }
@@ -129,13 +125,13 @@ static void game_loop_8() {
                     && (random(0, 2) == 0);
 
       if (doTwoDrop) {
-        offMagnet(obj_list[obj_index] - 1);
-        offMagnet(obj_list[obj_index + 1] - 1);
+        offMagnet(obj_list[obj_index]);
+        offMagnet(obj_list[obj_index + 1]);
         sendRegisters();
         obj_index     += 2;
         twoDrop_budget--;
       } else {
-        offMagnet(obj_list[obj_index] - 1);
+        offMagnet(obj_list[obj_index]);
         sendRegisters();
         obj_index++;
       }
@@ -212,8 +208,8 @@ void  game_loop() {
           isTwoDrop = (TWO_DROP_CURRENT > 0)
                    && (obj_index + 1 < OBJ_NBR)
                    && (random(0, 2) == 0);
-          cur1 = obj_list[obj_index] - 1;
-          cur2 = isTwoDrop ? obj_list[obj_index + 1] - 1 : -1;
+          cur1 = obj_list[obj_index];
+          cur2 = isTwoDrop ? obj_list[obj_index + 1] : -1;
 
           magnetLedWrite(cur1, 1);
           if (cur2 >= 0) magnetLedWrite(cur2, 1);
