@@ -6,12 +6,6 @@
 
 extern int obj_list[OBJ_NBR];
 extern int _difficulty;
-extern int TWO_DROP_MIN;
-extern int TWO_DROP_MAX;
-extern int TWO_DROP_CURRENT;
-
-extern bool RANDOM_LEDS_ENABLED;
-extern int  FAKE_LED_ON_TIME;
 
 void  shuffleList(int arrayToShuffle[], int size);
 void  game_loop();

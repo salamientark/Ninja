@@ -1,16 +1,16 @@
 #include "game_loop.h"
 #include "standby.h"
 
-/* GLOBAL VARIABLES */
-int DELAY_BETWEEN_DROPS_MIN;
-int DELAY_BETWEEN_DROPS_MAX;
-int MAGNET_LED_ON_TIME;
-int DROP_TIME;
-int TWO_DROP_MIN;
-int TWO_DROP_MAX;
-int TWO_DROP_CURRENT;
-bool RANDOM_LEDS_ENABLED = false;
-int  FAKE_LED_ON_TIME     = 0;
+/* FILE-LOCAL VARIABLES — only used within game_loop.cpp */
+static int DELAY_BETWEEN_DROPS_MIN;
+static int DELAY_BETWEEN_DROPS_MAX;
+static int MAGNET_LED_ON_TIME;
+static int DROP_TIME;
+static int TWO_DROP_MIN;
+static int TWO_DROP_MAX;
+static int TWO_DROP_CURRENT;
+static bool RANDOM_LEDS_ENABLED = false;
+static int  FAKE_LED_ON_TIME     = 0;
 
 void shuffleList(int arrayToShuffle[], int size) {
   // Loop backward through the array
