@@ -174,6 +174,7 @@ void  game_loop() {
   int  cur1 = -1, cur2 = -1;
   bool isTwoDrop  = false;
   bool stateEntry = true;  // true on first tick of each state
+  byte fakeLedMask = 0;    // tracks which bits were set for fake LEDs
 
   while (obj_index < OBJ_NBR) {
     unsigned long now     = millis();
@@ -184,17 +185,19 @@ void  game_loop() {
       case DROP_FAKE_LEDS: {
         if (stateEntry) {
           stateEntry = false;
+          fakeLedMask = 0;
           int count = random(0, 3);
-          if (count > 0) {
-            for (int i = 0; i < count; i++)
-              magnetLedWrite(random(0, OBJ_NBR), 1);
+          for (int i = 0; i < count; i++)
+            fakeLedMask |= (1 << random(0, OBJ_NBR));
+          if (fakeLedMask) {
+            MAGNET_LED_REGISTER |= fakeLedMask;
             sendRegisters();
           }
           stateStart = millis();
         }
-        if (elapsed >= (unsigned long)FAKE_LED_ON_TIME) {
-          MAGNET_LED_REGISTER = 0b00000000;
-          sendRegisters();
+        if (!fakeLedMask || elapsed >= (unsigned long)FAKE_LED_ON_TIME) {
+          MAGNET_LED_REGISTER &= ~fakeLedMask;  // clear only the fake bits
+          if (fakeLedMask) sendRegisters();
           state      = DROP_LED_ON;
           stateStart = millis();
           stateEntry = true;
