@@ -144,14 +144,15 @@ static void game_loop_8() {
 
   confuse_anim_reset();
 
-  unsigned long dropTimer = millis() + 1000UL;
+  unsigned long dropStart    = millis();
+  unsigned long dropInterval = 1000UL;
 
   while (obj_index < OBJ_NBR) {
     unsigned long now = millis();
 
     confuse_anim_tick();
 
-    if (now >= dropTimer) {
+    if (now - dropStart >= dropInterval) {
       bool doTwoDrop = (twoDrop_budget > 0)
                     && (obj_index + 1 < OBJ_NBR)
                     && (random(0, 2) == 0);
@@ -166,8 +167,8 @@ static void game_loop_8() {
         obj_index++;
       }
 
-      unsigned long interval = (unsigned long)random(DROP_TIME + DELAY_BETWEEN_DROPS_MIN, DROP_TIME + DELAY_BETWEEN_DROPS_MAX + 1);
-      dropTimer = now + interval;
+      dropInterval = (unsigned long)random(DROP_TIME + DELAY_BETWEEN_DROPS_MIN, DROP_TIME + DELAY_BETWEEN_DROPS_MAX + 1);
+      dropStart = now;
     }
   }
 
