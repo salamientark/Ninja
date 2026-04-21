@@ -120,7 +120,7 @@ static int           cCurrentAnim   = 0;
 static int           cFrameIndex    = 0;
 
 void confuse_anim_reset() {
-    cLastFrameTime = 0;
+    cLastFrameTime = millis();
     cAnimStartTime = millis();
     cCurrentAnim   = random(0, CONFUSE_ANIM_COUNT);
     cFrameIndex    = 0;
