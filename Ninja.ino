@@ -45,7 +45,7 @@ void setup() {
   pinMode(MAGNET_SHIFT_PIN, OUTPUT);
   pinMode(MAGNET_LATCH_PIN, OUTPUT);
   pinMode(MAGNET_OE_PIN,    OUTPUT);
-  digitalWrite(MAGNET_OE_PIN, LOW); // Enable Chain B outputs
+  analogWrite(MAGNET_OE_PIN, 255 - MAGNET_HOLD_DUTY); // PWM enable (active-LOW inverted)
 }
 
 /* ************************************************************************** */

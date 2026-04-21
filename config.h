@@ -17,6 +17,11 @@
 #define MAGNET_LATCH_PIN      8   // RCLK / ST_CP
 #define MAGNET_OE_PIN         9   // OE (active LOW, PWM-capable)
 
+// Magnet hold strength (PWM duty on MAGNET_OE_PIN, 0-255)
+// 255 = full on (original behavior, hot). Lower = cooler but weaker hold.
+// Start at 128 (50%). Reduce if too hot, raise if sticks slip.
+#define MAGNET_HOLD_DUTY     128
+
 // PROGRAM CONSTANTS
 #define DIFFICULTY_MAX        8
 #define OBJ_NBR               8

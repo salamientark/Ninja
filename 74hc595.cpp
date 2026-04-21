@@ -26,12 +26,12 @@ void offMagnetLED(byte magnetLEDPin) {
 
 void outputEnable() {
   digitalWrite(MENU_OE_PIN,   LOW);  // OE is active LOW
-  digitalWrite(MAGNET_OE_PIN, LOW);
+  analogWrite(MAGNET_OE_PIN, 255 - MAGNET_HOLD_DUTY); // PWM, active-LOW inverted
 }
 
 void outputDisable() {
   digitalWrite(MENU_OE_PIN,   HIGH);
-  digitalWrite(MAGNET_OE_PIN, HIGH);
+  analogWrite(MAGNET_OE_PIN, 255); // 0% duty after invert = fully disabled
 }
 
 // Chain A: 1 chip — menu LEDs only
