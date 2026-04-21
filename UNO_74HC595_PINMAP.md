@@ -88,22 +88,26 @@ Three firmware registers (see `Ninja.ino`):
 
 `MENU_LED_REGISTER` shifted `MSBFIRST` to Q7..Q0.
 
-| Bit | Output | Macro            | Meaning       |
-|-----|--------|------------------|---------------|
-| 0   | Q0     | `MENU_LED_1_PIN` | Difficulty 1  |
-| 1   | Q1     | `MENU_LED_2_PIN` | Difficulty 2  |
-| 2   | Q2     | `MENU_LED_3_PIN` | Difficulty 3  |
-| 3   | Q3     | `MENU_LED_4_PIN` | Difficulty 4  |
-| 4   | Q4     | `MENU_LED_5_PIN` | Difficulty 5  |
-| 5   | Q5     | `MENU_LED_6_PIN` | Difficulty 6  |
-| 6   | Q6     | `MENU_LED_7_PIN` | Difficulty 7  |
-| 7   | Q7     | `MENU_LED_8_PIN` | Difficulty 8  |
+`show_difficulty()` in `menu.cpp` lights bits from MSB down: difficulty N
+lights bits 7 through 8−N (e.g. difficulty 1 → bit 7; difficulty 3 → bits
+7,6,5; difficulty 8 → all bits).
+
+| Bit | Output | Lit when        |
+|-----|--------|-----------------|
+| 7   | Q7     | difficulty ≥ 1  |
+| 6   | Q6     | difficulty ≥ 2  |
+| 5   | Q5     | difficulty ≥ 3  |
+| 4   | Q4     | difficulty ≥ 4  |
+| 3   | Q3     | difficulty ≥ 5  |
+| 2   | Q2     | difficulty ≥ 6  |
+| 1   | Q1     | difficulty ≥ 7  |
+| 0   | Q0     | difficulty = 8  |
 
 ### 4.2 Chain B — Byte Packing
 
 Per `sendMagnetRegisters()` in `74hc595.cpp`:
 
-```
+```cpp
 sideA = ((MAGNET_REGISTER     & 0x0F) << 4) | (MAGNET_LED_REGISTER & 0x0F);
 sideB = ( MAGNET_REGISTER     & 0xF0)       | ((MAGNET_LED_REGISTER >> 4) & 0x0F);
 ```

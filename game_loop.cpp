@@ -147,7 +147,7 @@ static void game_loop_8() {
 }
 
 void  game_loop() {
-  int obj_index = 0;
+  int obj_index = -1;
 
   setup_game_loop();
 
