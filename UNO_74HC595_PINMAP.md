@@ -37,9 +37,9 @@ Each chain has its own `DATA`, `SHIFT`, `LATCH`, and `OE` pin.
 | Pin | Role                 | Macro              |
 |-----|----------------------|--------------------|
 | D6  | `SER`   (data)       | `MAGNET_DATA_PIN`  |
-| D7  | `OE`    (active LOW) | `MAGNET_OE_PIN`    |
+| D7  | `SRCLK` (shift clk)  | `MAGNET_SHIFT_PIN` |
 | D8  | `RCLK`  (latch)      | `MAGNET_LATCH_PIN` |
-| D9  | `SRCLK` (shift clk)  | `MAGNET_SHIFT_PIN` |
+| D9  | `OE`    (active LOW, PWM) | `MAGNET_OE_PIN` |
 
 ### Free
 
@@ -63,9 +63,9 @@ Each chain has its own `DATA`, `SHIFT`, `LATCH`, and `OE` pin.
 ### Chain B (magnet chain, chip 2 → chip 3)
 
 - Uno `D6`  → chip 2 `SER`
-- Uno `D9`  → chip 2 & chip 3 `SRCLK`
+- Uno `D7`  → chip 2 & chip 3 `SRCLK`
 - Uno `D8`  → chip 2 & chip 3 `RCLK`
-- Uno `D7`  → chip 2 & chip 3 `OE`
+- Uno `D9`  → chip 2 & chip 3 `OE`  (PWM-capable — used for magnet hold-current PWM)
 - Chip 2 `Q7'` → chip 3 `SER`
 - Tie `MR` of both chips to `+5V`
 

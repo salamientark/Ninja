@@ -13,9 +13,9 @@
 
 // Chain B — Magnets + Magnet LEDs (74HC595 #2 → #3 chained)
 #define MAGNET_DATA_PIN       6   // SER / DS
-#define MAGNET_OE_PIN         7   // OE (active LOW)
+#define MAGNET_SHIFT_PIN      7   // SRCLK / SH_CP
 #define MAGNET_LATCH_PIN      8   // RCLK / ST_CP
-#define MAGNET_SHIFT_PIN      9   // SRCLK / SH_CP
+#define MAGNET_OE_PIN         9   // OE (active LOW, PWM-capable)
 
 // PROGRAM CONSTANTS
 #define DIFFICULTY_MAX        8
