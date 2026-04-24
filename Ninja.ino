@@ -3,6 +3,7 @@
 #include "74hc595.h"
 #include "menu.h"
 #include "game_loop.h"
+#include "pwm.h"
 
 /* ************************************************************************** */
 /*                                GLOBAL & CONSTANTS                          */
@@ -28,24 +29,37 @@ void setup() {
   // RANDOM SEED
   randomSeed(analogRead(0));
 
-  // INPUTS
-  upButton.begin();
-  downButton.begin();
-  startButton.begin();
+  // ---- STAGE 1: disable all outputs BEFORE anything can glitch ----
+  // Magnet chain: OE HIGH immediately (also sets pinMode).
+  magnet_pwm_init();
+  // Menu chain: keep OE HIGH until we have clean data latched.
+  pinMode(MENU_OE_PIN, OUTPUT);
+  digitalWrite(MENU_OE_PIN, HIGH);
 
-  // OUTPUTS — Chain A (menu LEDs)
-  pinMode(MENU_DATA_PIN,  OUTPUT);
-  pinMode(MENU_SHIFT_PIN, OUTPUT);
-  pinMode(MENU_LATCH_PIN, OUTPUT);
-  pinMode(MENU_OE_PIN,    OUTPUT);
-  digitalWrite(MENU_OE_PIN, LOW);   // Enable Chain A outputs
-
-  // OUTPUTS — Chain B (magnets + magnet LEDs)
+  // ---- STAGE 2: configure shift register pins ----
+  pinMode(MENU_DATA_PIN,    OUTPUT);
+  pinMode(MENU_SHIFT_PIN,   OUTPUT);
+  pinMode(MENU_LATCH_PIN,   OUTPUT);
   pinMode(MAGNET_DATA_PIN,  OUTPUT);
   pinMode(MAGNET_SHIFT_PIN, OUTPUT);
   pinMode(MAGNET_LATCH_PIN, OUTPUT);
-  pinMode(MAGNET_OE_PIN,    OUTPUT);
-  analogWrite(MAGNET_OE_PIN, 255 - MAGNET_HOLD_DUTY); // PWM enable (active-LOW inverted)
+
+  // ---- STAGE 3: latch all zeros into every chip so outputs start clean ----
+  MENU_LED_REGISTER   = 0;
+  MAGNET_REGISTER     = 0;
+  MAGNET_LED_REGISTER = 0;
+  sendRegisters();
+
+  delay(20); // let rails settle before enabling outputs
+
+  // ---- STAGE 4: enable outputs ----
+  digitalWrite(MENU_OE_PIN, LOW);          // menu LEDs (all still 0)
+  magnet_pwm_set_duty(MAGNET_HOLD_DUTY);   // magnets enabled at configured duty (all bits still 0)
+
+  // ---- STAGE 5: inputs ----
+  upButton.begin();
+  downButton.begin();
+  startButton.begin();
 }
 
 /* ************************************************************************** */

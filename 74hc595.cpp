@@ -1,4 +1,5 @@
 #include "74hc595.h"
+#include "pwm.h"
 
 void menuLedWrite(byte pin, bool state) {
   bitWrite(MENU_LED_REGISTER, pin, state);
@@ -25,13 +26,13 @@ void offMagnetLED(byte magnetLEDPin) {
 }
 
 void outputEnable() {
-  digitalWrite(MENU_OE_PIN,   LOW);  // OE is active LOW
-  analogWrite(MAGNET_OE_PIN, 255 - MAGNET_HOLD_DUTY); // PWM, active-LOW inverted
+  digitalWrite(MENU_OE_PIN, LOW);  // OE is active LOW
+  magnet_pwm_set_duty(MAGNET_HOLD_DUTY);
 }
 
 void outputDisable() {
-  digitalWrite(MENU_OE_PIN,   HIGH);
-  analogWrite(MAGNET_OE_PIN, 255); // 0% duty after invert = fully disabled
+  digitalWrite(MENU_OE_PIN, HIGH);
+  magnet_pwm_disable();
 }
 
 // Chain A: 1 chip — menu LEDs only
