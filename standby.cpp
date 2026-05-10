@@ -17,7 +17,6 @@ static void anim_cascade(void);
 static void anim_alternate(void);
 
 void standby_reset() {
-    MAGNET_LED_REGISTER = 0x00;
     sendRegisters();
     lastFrameTime = millis();
     animStartTime = millis();

@@ -59,7 +59,9 @@ void menu_loop() {
 void show_difficulty() {
   int counter = 0;
   while (counter < DIFFICULTY_MAX) {
-    menuLedWrite(DIFFICULTY_MAX - 1 - counter, counter < _difficulty);
+    bool on = counter < _difficulty;
+    menuLedWrite(DIFFICULTY_MAX - 1 - counter, on);
+    magnetLedWrite(counter, on);
     counter++;
   }
   sendRegisters();

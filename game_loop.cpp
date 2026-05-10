@@ -141,6 +141,11 @@ static void game_loop_8() {
     }
   }
 
+  // Wait for last stick to fall before returning (caller re-energizes magnets)
+  while (millis() - dropStart < (unsigned long)DROP_TIME) {
+    confuse_anim_tick();
+  }
+
   MENU_LED_REGISTER   = 0x00;
   MAGNET_LED_REGISTER = 0x00;
   sendRegisters();
