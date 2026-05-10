@@ -32,6 +32,8 @@ static DifficultyConfig _cfg;
 
 /* Per-round mutable state (was TWO_DROP_CURRENT static). */
 static int _two_drop_current;
+/* Pre-allocated obj_index for the 3-drop event; -1 → none this round. */
+static int _three_drop_idx;
 
 void shuffleList(byte arrayToShuffle[], int size) {
   for (int i = size - 1; i > 0; i--) {
@@ -46,6 +48,11 @@ void  setup_game_loop() {
   uint8_t lvl_idx = constrain(_difficulty - 1, 0, 7);
   memcpy_P(&_cfg, &DIFFICULTY_TABLE[lvl_idx], sizeof(DifficultyConfig));
   _two_drop_current = random(_cfg.two_drop_min, _cfg.two_drop_max + 1);
+  // Place 3-drop in middle band: indices [2, OBJ_NBR-3) = [2,5) = {2,3,4}.
+  // Leaves room before and after; avoids round-edge weirdness.
+  _three_drop_idx = (_cfg.three_drop_count > 0)
+                      ? random(2, OBJ_NBR - 3)
+                      : -1;
 }
 
 /* ── Drop state machine (non-blocking, replaces delay()-based drops) ── */
@@ -78,55 +85,8 @@ static void compute_wait_range(int next_idx, uint16_t &lo, uint16_t &hi) {
   hi = lerp_u16(_cfg.wait_max, _cfg.wait_end_max, (uint8_t)next_idx, OBJ_NBR - 1);
 }
 
-static void game_loop_8() {
-  int obj_index      = 0;
-  int twoDrop_budget = _two_drop_current;
-
-  confuse_anim_reset();
-
-  unsigned long dropStart    = millis();
-  unsigned long dropInterval = 1000UL;
-
-  while (obj_index < OBJ_NBR) {
-    unsigned long now = millis();
-
-    confuse_anim_tick();
-
-    if (now - dropStart >= dropInterval) {
-      bool doTwoDrop = (twoDrop_budget > 0)
-                    && (obj_index + 1 < OBJ_NBR)
-                    && (random(0, 2) == 0);
-
-      if (doTwoDrop) {
-        offMagnet(obj_list[obj_index]);
-        offMagnet(obj_list[obj_index + 1]);
-        sendRegisters();
-        obj_index     += 2;
-        twoDrop_budget--;
-      } else {
-        offMagnet(obj_list[obj_index]);
-        sendRegisters();
-        obj_index++;
-      }
-
-      dropInterval = (unsigned long)random(_cfg.drop_time + _cfg.wait_min,
-                                           _cfg.drop_time + _cfg.wait_max + 1);
-      dropStart = now;
-    }
-  }
-
-  // Wait for last stick to fall before returning (caller re-energizes magnets)
-  while (millis() - dropStart < (unsigned long)_cfg.drop_time) {
-    confuse_anim_tick();
-  }
-
-  MENU_LED_REGISTER   = 0x00;
-  MAGNET_LED_REGISTER = 0x00;
-  sendRegisters();
-}
-
 void  game_loop() {
-  int obj_index = -1;
+  int obj_index = 0;
 
   setup_game_loop();
 
@@ -137,22 +97,21 @@ void  game_loop() {
   // Shuffle the list of objects
   shuffleList(obj_list, OBJ_NBR);
 
-  if (_difficulty == 8) {
-    game_loop_8();
-    return;
-  }
+  confuse_anim_reset();
 
   // State machine variables
   DropState      state        = DROP_WAIT;  // start with initial pause
   unsigned long  stateStart   = millis();
   unsigned long  waitDuration = 1000UL;     // 1s delay before first drop
-  int  cur1 = -1, cur2 = -1;
+  int  cur1 = -1, cur2 = -1, cur3 = -1;
   bool isTwoDrop   = false;
+  bool isThreeDrop = false;
   bool stateEntry  = true;          // true on first tick of each state
   byte fakeLedMask = 0;             // bits set for confuse / fakeout LEDs
   uint16_t cur_warn = 0;            // per-drop warn duration (ms)
+  bool roundDone   = false;         // set by DROP_CLEANUP when last drop committed
 
-  while (obj_index < OBJ_NBR) {
+  while (!roundDone) {
     unsigned long now     = millis();
     unsigned long elapsed = now - stateStart;
 
@@ -196,10 +155,8 @@ void  game_loop() {
           sendRegisters();
           fakeLedMask = 0;
           // Re-arm wait before retrying a real drop at same obj_index.
-          // Use +1 (same slot retried) regardless of prior isTwoDrop.
           uint16_t lo, hi;
-          int next_idx = obj_index + 1;
-          compute_wait_range(next_idx, lo, hi);
+          compute_wait_range(obj_index, lo, hi);
           waitDuration = (unsigned long)random(lo, hi + 1);
           state      = DROP_WAIT;
           stateStart = millis();
@@ -211,13 +168,17 @@ void  game_loop() {
       case DROP_LED_ON: {
         if (stateEntry) {
           stateEntry = false;
-          // Flat probability across round; budget acts as hard cap only.
-          isTwoDrop = (_cfg.two_drop_prob > 0)
+          // 3-drop fires once per round at pre-allocated index. Eats 2-drop slot.
+          isThreeDrop = (obj_index == _three_drop_idx)
+                     && (obj_index + 2 < OBJ_NBR);
+          isTwoDrop = !isThreeDrop
+                   && (_cfg.two_drop_prob > 0)
                    && (_two_drop_current > 0)
                    && (obj_index + 1 < OBJ_NBR)
                    && (random(0, 100) < _cfg.two_drop_prob);
           cur1 = obj_list[obj_index];
-          cur2 = isTwoDrop ? obj_list[obj_index + 1] : -1;
+          cur2 = (isTwoDrop || isThreeDrop) ? obj_list[obj_index + 1] : -1;
+          cur3 = isThreeDrop ? obj_list[obj_index + 2] : -1;
 
           // Per-drop variable warn (sentinel: warn_max==0 → no warn).
           cur_warn = (_cfg.warn_max == 0)
@@ -234,6 +195,7 @@ void  game_loop() {
 
           magnetLedWrite(cur1, 1);
           if (cur2 >= 0) magnetLedWrite(cur2, 1);
+          if (cur3 >= 0) magnetLedWrite(cur3, 1);
           sendRegisters();
           stateStart = millis();
         }
@@ -248,6 +210,7 @@ void  game_loop() {
       case DROP_RELEASE: {
         offMagnet(cur1);
         if (cur2 >= 0) offMagnet(cur2);
+        if (cur3 >= 0) offMagnet(cur3);
         sendRegisters();
         state      = DROP_CLEANUP;
         stateStart = millis();
@@ -259,11 +222,24 @@ void  game_loop() {
         if (elapsed >= (unsigned long)_cfg.drop_time) {
           offMagnetLED(cur1);
           if (cur2 >= 0) offMagnetLED(cur2);
+          if (cur3 >= 0) offMagnetLED(cur3);
           sendRegisters();
+          // Commit the drop here; DROP_WAIT no longer advances obj_index.
+          obj_index += isThreeDrop ? 3 : isTwoDrop ? 2 : 1;
+          if (isTwoDrop) _two_drop_current--;
+          isTwoDrop   = false;
+          isThreeDrop = false;
+          cur1 = -1;
+          cur2 = -1;
+          cur3 = -1;
+          if (obj_index >= OBJ_NBR) {
+            // Last drop committed — skip final DROP_WAIT, fall to universal tail.
+            roundDone = true;
+            break;
+          }
           // Lerp wait range using the upcoming drop's index.
           uint16_t lo, hi;
-          int next_idx = obj_index + (isTwoDrop ? 2 : 1);
-          compute_wait_range(next_idx, lo, hi);
+          compute_wait_range(obj_index, lo, hi);
           waitDuration = (unsigned long)random(lo, hi + 1);
           state      = DROP_WAIT;
           stateStart = millis();
@@ -289,12 +265,6 @@ void  game_loop() {
             stateEntry = true;
             break;
           }
-          // Commit previous drop, advance for next.
-          obj_index += isTwoDrop ? 2 : 1;
-          if (isTwoDrop) _two_drop_current--;
-          isTwoDrop = false;
-          cur1 = -1;
-          cur2 = -1;
           state      = (_cfg.confuse_flash_ms != 0) ? DROP_FAKE_LEDS : DROP_LED_ON;
           stateStart = millis();
           stateEntry = true;
@@ -303,4 +273,15 @@ void  game_loop() {
       }
     }
   }
+
+  // Universal tail: hold drop_time ms for last stick to settle.
+  // confuse_anim_tick() animates if confuse enabled (lvl 7+); otherwise idle.
+  unsigned long tailStart = millis();
+  while (millis() - tailStart < (unsigned long)_cfg.drop_time) {
+    if (_cfg.confuse_flash_ms != 0) confuse_anim_tick();
+  }
+
+  MENU_LED_REGISTER   = 0x00;
+  MAGNET_LED_REGISTER = 0x00;
+  sendRegisters();
 }
