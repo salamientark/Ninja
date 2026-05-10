@@ -175,6 +175,7 @@ void  game_loop() {
                    && (_cfg.two_drop_prob > 0)
                    && (_two_drop_current > 0)
                    && (obj_index + 1 < OBJ_NBR)
+                   && (_three_drop_idx < 0 || obj_index + 1 != _three_drop_idx)
                    && (random(0, 100) < _cfg.two_drop_prob);
           cur1 = obj_list[obj_index];
           cur2 = (isTwoDrop || isThreeDrop) ? obj_list[obj_index + 1] : -1;
