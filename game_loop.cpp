@@ -1,16 +1,34 @@
 #include "game_loop.h"
 #include "standby.h"
+#include <avr/pgmspace.h>
 
-/* FILE-LOCAL VARIABLES — only used within game_loop.cpp */
-static int DELAY_BETWEEN_DROPS_MIN;
-static int DELAY_BETWEEN_DROPS_MAX;
-static int MAGNET_LED_ON_TIME;
-static int DROP_TIME;
-static int TWO_DROP_MIN;
-static int TWO_DROP_MAX;
-static int TWO_DROP_CURRENT;
-static bool RANDOM_LEDS_ENABLED = false;
-static int  FAKE_LED_ON_TIME     = 0;
+/* ── Difficulty table (PROGMEM) ── */
+/* PR 1: current curve preserved exactly; new-axis fields sentinel-disabled. */
+
+static const DifficultyConfig DIFFICULTY_TABLE[8] PROGMEM = {
+  // lvl 1
+  { 1000, 1000, 2000, 2000, 0, 0, 2000, 0, 0, 0, 0,   0, 0 },
+  // lvl 2
+  {  700,  700, 1700, 1700, 0, 0, 2000, 0, 0, 0, 0,   0, 0 },
+  // lvl 3
+  {  400,  400, 1500, 1500, 0, 0, 2000, 0, 0, 0, 0,   0, 0 },
+  // lvl 4
+  {    0,    0, 1500, 1500, 0, 0, 1500, 0, 0, 0, 0,   0, 0 },
+  // lvl 5
+  {    0,    0, 1000, 1800, 0, 0, 1500, 1, 1, 0, 0,   0, 0 },
+  // lvl 6
+  {    0,    0,  700, 1300, 0, 0, 1000, 1, 2, 0, 0,   0, 0 },
+  // lvl 7
+  {    0,    0,  500, 1100, 0, 0, 1000, 2, 3, 0, 0, 300, 0 },
+  // lvl 8
+  {    0,    0,  200,  600, 0, 0,  600, 3, 4, 0, 0,   0, 0 },
+};
+
+/* RAM-resident copy of the active level config. */
+static DifficultyConfig _cfg;
+
+/* Per-round mutable state (was TWO_DROP_CURRENT static). */
+static int _two_drop_current;
 
 void shuffleList(byte arrayToShuffle[], int size) {
   for (int i = size - 1; i > 0; i--) {
@@ -22,77 +40,9 @@ void shuffleList(byte arrayToShuffle[], int size) {
 }
 
 void  setup_game_loop() {
-  RANDOM_LEDS_ENABLED = false;
-  /* Initial setup | difficulty_1 */
-  switch (_difficulty) {
-    case 1:
-      DELAY_BETWEEN_DROPS_MIN = 2000; DELAY_BETWEEN_DROPS_MAX = 2000;
-      MAGNET_LED_ON_TIME = 1000;
-      DROP_TIME = 2000;
-      TWO_DROP_MIN = 0;
-      TWO_DROP_MAX = 0;
-      break;
-    case 2:
-      DELAY_BETWEEN_DROPS_MIN = 1700; DELAY_BETWEEN_DROPS_MAX = 1700;
-      MAGNET_LED_ON_TIME = 700;
-      DROP_TIME = 2000;
-      TWO_DROP_MIN = 0;
-      TWO_DROP_MAX = 0;
-      break;
-    case 3:
-      DELAY_BETWEEN_DROPS_MIN = 1500; DELAY_BETWEEN_DROPS_MAX = 1500;
-      MAGNET_LED_ON_TIME = 400;
-      DROP_TIME = 2000;
-      TWO_DROP_MIN = 0;
-      TWO_DROP_MAX = 0;
-      break;
-    case 4:
-      DELAY_BETWEEN_DROPS_MIN = 1500; DELAY_BETWEEN_DROPS_MAX = 1500;
-      MAGNET_LED_ON_TIME = 0;
-      DROP_TIME = 1500;
-      TWO_DROP_MIN = 0;
-      TWO_DROP_MAX = 0;
-      break;
-    case 5:
-      DELAY_BETWEEN_DROPS_MIN = 1000; DELAY_BETWEEN_DROPS_MAX = 1800;
-      MAGNET_LED_ON_TIME = 0;
-      DROP_TIME = 1500;
-      TWO_DROP_MIN = 1;
-      TWO_DROP_MAX = 1;
-      break;
-    case 6:
-      DELAY_BETWEEN_DROPS_MIN = 700;  DELAY_BETWEEN_DROPS_MAX = 1300;
-      MAGNET_LED_ON_TIME = 0;
-      DROP_TIME = 1000;
-      TWO_DROP_MIN = 1;
-      TWO_DROP_MAX = 2;
-      break;
-    case 7:
-      DELAY_BETWEEN_DROPS_MIN = 500;  DELAY_BETWEEN_DROPS_MAX = 1100;
-      MAGNET_LED_ON_TIME = 0;
-      DROP_TIME = 1000;
-      TWO_DROP_MIN = 2;
-      TWO_DROP_MAX = 3;
-      RANDOM_LEDS_ENABLED = true;
-      FAKE_LED_ON_TIME    = 300;
-      break;
-    case 8:
-      DELAY_BETWEEN_DROPS_MIN = 200;  DELAY_BETWEEN_DROPS_MAX = 600;
-      MAGNET_LED_ON_TIME = 0;
-      DROP_TIME = 600;
-      TWO_DROP_MIN = 3;
-      TWO_DROP_MAX = 4;
-      break;
-    // Fallback to difficulty 1
-    default:
-      DELAY_BETWEEN_DROPS_MIN = 2000; DELAY_BETWEEN_DROPS_MAX = 2000;
-      MAGNET_LED_ON_TIME = 1000;
-      DROP_TIME = 2000;
-      TWO_DROP_MIN = 0;
-      TWO_DROP_MAX = 0;
-      break;
-  }
-  TWO_DROP_CURRENT = random(TWO_DROP_MIN, TWO_DROP_MAX + 1);
+  uint8_t lvl_idx = constrain(_difficulty - 1, 0, 7);
+  memcpy_P(&_cfg, &DIFFICULTY_TABLE[lvl_idx], sizeof(DifficultyConfig));
+  _two_drop_current = random(_cfg.two_drop_min, _cfg.two_drop_max + 1);
 }
 
 /* ── Drop state machine (non-blocking, replaces delay()-based drops) ── */
@@ -107,7 +57,7 @@ enum DropState {
 
 static void game_loop_8() {
   int obj_index      = 0;
-  int twoDrop_budget = TWO_DROP_CURRENT;
+  int twoDrop_budget = _two_drop_current;
 
   confuse_anim_reset();
 
@@ -136,13 +86,14 @@ static void game_loop_8() {
         obj_index++;
       }
 
-      dropInterval = (unsigned long)random(DROP_TIME + DELAY_BETWEEN_DROPS_MIN, DROP_TIME + DELAY_BETWEEN_DROPS_MAX + 1);
+      dropInterval = (unsigned long)random(_cfg.drop_time + _cfg.wait_min,
+                                           _cfg.drop_time + _cfg.wait_max + 1);
       dropStart = now;
     }
   }
 
   // Wait for last stick to fall before returning (caller re-energizes magnets)
-  while (millis() - dropStart < (unsigned long)DROP_TIME) {
+  while (millis() - dropStart < (unsigned long)_cfg.drop_time) {
     confuse_anim_tick();
   }
 
@@ -196,7 +147,7 @@ void  game_loop() {
           }
           stateStart = millis();
         }
-        if (!fakeLedMask || elapsed >= (unsigned long)FAKE_LED_ON_TIME) {
+        if (!fakeLedMask || elapsed >= (unsigned long)_cfg.confuse_flash_ms) {
           MAGNET_LED_REGISTER &= ~fakeLedMask;  // clear only the fake bits
           if (fakeLedMask) sendRegisters();
           state      = DROP_LED_ON;
@@ -210,7 +161,7 @@ void  game_loop() {
         if (stateEntry) {
           stateEntry = false;
           // Pick objects for this drop
-          isTwoDrop = (TWO_DROP_CURRENT > 0)
+          isTwoDrop = (_two_drop_current > 0)
                    && (obj_index + 1 < OBJ_NBR)
                    && (random(0, 2) == 0);
           cur1 = obj_list[obj_index];
@@ -221,7 +172,7 @@ void  game_loop() {
           sendRegisters();
           stateStart = millis();
         }
-        if (elapsed >= (unsigned long)MAGNET_LED_ON_TIME) {
+        if (elapsed >= (unsigned long)_cfg.warn_min) {
           state      = DROP_RELEASE;
           stateStart = millis();
           stateEntry = true;
@@ -240,13 +191,13 @@ void  game_loop() {
       }
 
       case DROP_CLEANUP: {
-        if (elapsed >= (unsigned long)DROP_TIME) {
+        if (elapsed >= (unsigned long)_cfg.drop_time) {
           offMagnetLED(cur1);
           if (cur2 >= 0) offMagnetLED(cur2);
           sendRegisters();
           // Compute random wait before next drop
-          waitDuration = (unsigned long)random(DELAY_BETWEEN_DROPS_MIN,
-                                               DELAY_BETWEEN_DROPS_MAX + 1);
+          waitDuration = (unsigned long)random(_cfg.wait_min,
+                                               _cfg.wait_max + 1);
           state      = DROP_WAIT;
           stateStart = millis();
           stateEntry = true;
@@ -258,10 +209,10 @@ void  game_loop() {
         if (elapsed >= waitDuration) {
           // Advance to next object(s)
           obj_index += isTwoDrop ? 2 : 1;
-          if (isTwoDrop) TWO_DROP_CURRENT--;
+          if (isTwoDrop) _two_drop_current--;
           cur1 = -1;
           cur2 = -1;
-          state      = RANDOM_LEDS_ENABLED ? DROP_FAKE_LEDS : DROP_LED_ON;
+          state      = (_cfg.confuse_flash_ms != 0) ? DROP_FAKE_LEDS : DROP_LED_ON;
           stateStart = millis();
           stateEntry = true;
         }
