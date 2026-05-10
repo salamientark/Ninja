@@ -196,8 +196,9 @@ void  game_loop() {
           sendRegisters();
           fakeLedMask = 0;
           // Re-arm wait before retrying a real drop at same obj_index.
+          // Use +1 (same slot retried) regardless of prior isTwoDrop.
           uint16_t lo, hi;
-          int next_idx = obj_index + (isTwoDrop ? 2 : 1);
+          int next_idx = obj_index + 1;
           compute_wait_range(next_idx, lo, hi);
           waitDuration = (unsigned long)random(lo, hi + 1);
           state      = DROP_WAIT;
@@ -210,7 +211,9 @@ void  game_loop() {
       case DROP_LED_ON: {
         if (stateEntry) {
           stateEntry = false;
-          isTwoDrop = (_two_drop_current > 0)
+          // Flat probability across round; budget acts as hard cap only.
+          isTwoDrop = (_cfg.two_drop_prob > 0)
+                   && (_two_drop_current > 0)
                    && (obj_index + 1 < OBJ_NBR)
                    && (random(0, 100) < _cfg.two_drop_prob);
           cur1 = obj_list[obj_index];
@@ -271,15 +274,15 @@ void  game_loop() {
 
       case DROP_WAIT: {
         if (elapsed >= waitDuration) {
-          // Roll fakeout (skip on initial wait — no prior drop frame).
+          // Roll fakeout (skip drop 0 — no prior drop frame for context).
           bool fakeout = (_cfg.fakeout_prob > 0)
-                      && (obj_index >= 0)
+                      && (obj_index > 0)
                       && (random(0, 100) < _cfg.fakeout_prob);
           if (fakeout) {
-            // Force cur_warn > 0; LED needs a visible duration.
-            uint16_t lo = _cfg.warn_min ? _cfg.warn_min : 1;
-            uint16_t hi = _cfg.warn_max ? _cfg.warn_max : lo;
-            if (hi < lo) hi = lo;
+            // Floor flash at FAKEOUT_MIN_MS so player can perceive it.
+            const uint16_t FAKEOUT_MIN_MS = 150;
+            uint16_t lo = max(FAKEOUT_MIN_MS, _cfg.warn_min);
+            uint16_t hi = max(lo, _cfg.warn_max);
             cur_warn   = (uint16_t)random(lo, hi + 1);
             state      = DROP_FAKEOUT;
             stateStart = millis();
